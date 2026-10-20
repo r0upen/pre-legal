@@ -22,6 +22,7 @@ are set up. Update this section after every ticket.
 - Read the ticket with the Atlassian tools before starting.
 - Ask clarifying questions when requirements are unclear. Don't skip
   feature-dev phases.
+- Use feature-dev for feature tickets. One-off data or setup tasks don't need it.
 - Add unit and integration tests for new behavior and make sure all tests pass.
 - Open a PR with the GitHub tools when done. Never push directly to main
   unless I ask.
