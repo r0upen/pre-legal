@@ -1,2 +1,2 @@
 # pre-legal
-A platform for drafting legal agreements
+An AI-assisted platform for drafting common legal agreements from templates
