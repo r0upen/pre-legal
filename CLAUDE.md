@@ -9,8 +9,14 @@ Drafts come from Markdown templates in `templates/`, listed in
 legal advice, and the app must say so.
 
 ## Current status
-Nothing built yet. The repo, the Atlassian and GitHub MCP servers and the
-feature-dev plugin are set up. Update this section after every ticket.
+The repo, the Atlassian and GitHub MCP servers and the feature-dev plugin
+are set up. Update this section after every ticket.
+- PL-1: 11 Common Paper agreements (CC BY 4.0) copied unchanged into
+  `templates/`, described in `templates/catalog.json`, credited in
+  `templates/LICENSE.md`. Variables are marked inline with
+  `<span class="...">`. Only the Mutual NDA ships a cover page; the
+  others are standard terms only. `backend/` is a bare uv project with
+  pytest checks that the catalog matches the files.
 
 ## Development process
 - Read the ticket with the Atlassian tools before starting.

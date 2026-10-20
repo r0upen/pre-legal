@@ -1,0 +1,101 @@
+[
+  {
+    "id": "mutual-nda",
+    "name": "Mutual Non-Disclosure Agreement",
+    "description": "Lets two parties share confidential information with each other for a stated purpose while each keeps the other's information private.",
+    "version": "1.0",
+    "files": ["mutual-nda-coverpage.md", "mutual-nda.md"],
+    "source": "https://github.com/CommonPaper/Mutual-NDA",
+    "source_commit": "2a3068b6c0ab6015c440f541d5b215bc3ac2f4cb"
+  },
+  {
+    "id": "cloud-service-agreement",
+    "name": "Cloud Service Agreement",
+    "description": "Terms for a provider selling cloud software or SaaS to a customer, covering access, fees, data, warranties and liability.",
+    "version": "3.0",
+    "files": ["cloud-service-agreement.md"],
+    "source": "https://github.com/CommonPaper/CSA",
+    "source_commit": "3efceb01e3c8bfb7b302a5f34975aa2b084026a3"
+  },
+  {
+    "id": "service-level-agreement",
+    "name": "Service Level Agreement",
+    "description": "Uptime and support commitments, with service credits, for a cloud service. Used alongside a Cloud Service Agreement.",
+    "version": "2.0",
+    "files": ["service-level-agreement.md"],
+    "source": "https://github.com/CommonPaper/SLA",
+    "source_commit": "5b0e6336f058a66c4976d70ecabf1f5fb9ef3af4"
+  },
+  {
+    "id": "data-processing-agreement",
+    "name": "Data Processing Agreement",
+    "description": "How a provider processes personal data on a customer's behalf under privacy laws such as GDPR. Used alongside a Cloud Service Agreement.",
+    "version": "1.0",
+    "files": ["data-processing-agreement.md"],
+    "source": "https://github.com/CommonPaper/DPA",
+    "source_commit": "9f1c40d3fb0bb900397a919d058a9c0870f6b0f0"
+  },
+  {
+    "id": "professional-services-agreement",
+    "name": "Professional Services Agreement",
+    "description": "Terms for a provider performing services for a customer under statements of work, covering deliverables, fees and ownership.",
+    "version": "1.0",
+    "files": ["professional-services-agreement.md"],
+    "source": "https://github.com/CommonPaper/PSA",
+    "source_commit": "3fb650a72d229f6d6e6d64abebae5e83c6699535"
+  },
+  {
+    "id": "software-license-agreement",
+    "name": "Software License Agreement",
+    "description": "Terms for licensing software that the customer installs and runs on its own systems.",
+    "version": "1.1",
+    "files": ["software-license-agreement.md"],
+    "source": "https://github.com/CommonPaper/Software-License-Agreement",
+    "source_commit": "8ea7de38148a8a0c235b7aaf31487028c2e519ca"
+  },
+  {
+    "id": "pilot-agreement",
+    "name": "Pilot Agreement",
+    "description": "A short-term trial that lets a prospective customer evaluate a product before committing to a full commercial agreement.",
+    "version": "1.1",
+    "files": ["pilot-agreement.md"],
+    "source": "https://github.com/CommonPaper/Pilot-Agreement",
+    "source_commit": "5e7cdd4678cd9d6b3178872cce4a01d632f41f14"
+  },
+  {
+    "id": "design-partner-agreement",
+    "name": "Design Partner Agreement",
+    "description": "Gives an early partner access to a product in development in exchange for feedback.",
+    "version": "1.0",
+    "files": ["design-partner-agreement.md"],
+    "source": "https://github.com/CommonPaper/Design-Partner-Agreement",
+    "source_commit": "7b3853c26e75e28c24332ca00dfc607a7756e0ba"
+  },
+  {
+    "id": "partnership-agreement",
+    "name": "Partnership Agreement",
+    "description": "Terms for two companies cooperating on a business partnership, with each party's obligations set on the cover page and a license to use one party's brand.",
+    "version": "1.0",
+    "files": ["partnership-agreement.md"],
+    "source": "https://github.com/CommonPaper/Partnership-Agreement",
+    "source_commit": "6edeb5a285206893cfd0ac482267db44d90f317c"
+  },
+  {
+    "id": "business-associate-agreement",
+    "name": "Business Associate Agreement",
+    "description": "HIPAA terms for a provider that handles protected health information (PHI) on behalf of a healthcare customer.",
+    "version": "1.0",
+    "files": ["business-associate-agreement.md"],
+    "source": "https://github.com/CommonPaper/BAA",
+    "source_commit": "5f1fd992df1d0c78bf69997e1881e4107fa75695"
+  },
+  {
+    "id": "ai-addendum",
+    "name": "AI Addendum",
+    "description": "Terms for AI features in a product, covering inputs, outputs and model training. Used alongside a Cloud Service Agreement or Software License Agreement.",
+    "version": "1.0",
+    "files": ["ai-addendum.md"],
+    "source": "https://github.com/CommonPaper/AI-Addendum",
+    "source_commit": "6d9b044df73a2477c177e5989fca7f8d27df9387"
+  }
+]
