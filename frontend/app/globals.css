@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-navy: #1f3a5f;
+  --color-teal: #2a9d8f;
+  --font-sans: var(--font-geist-sans);
+}
+
+body {
+  background: #f8fafc;
+  color: #1e293b;
+}
+
+/* Document styling for the rendered NDA (preview and printed PDF). */
+.nda-doc {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+.nda-doc h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--color-navy);
+  margin-bottom: 1rem;
+}
+.nda-doc h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-navy);
+  margin: 1.5rem 0 0.5rem;
+}
+.nda-doc h3 {
+  font-weight: 700;
+  margin: 1rem 0 0.25rem;
+}
+.nda-doc p,
+.nda-doc ol,
+.nda-doc ul {
+  margin-bottom: 0.75rem;
+}
+.nda-doc ol {
+  list-style: decimal;
+  padding-left: 1.5rem;
+}
+/* Cover page options are lists whose items start with a ☒ or ☐ box. */
+.nda-doc ul {
+  list-style: none;
+}
+.nda-doc table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+.nda-doc th,
+.nda-doc td {
+  border: 1px solid #cbd5e1;
+  padding: 0.5rem;
+  vertical-align: top;
+}
+.nda-doc a {
+  color: var(--color-teal);
+  text-decoration: underline;
+}
+
+@media print {
+  body {
+    background: white;
+  }
+  /* Start the standard terms on a new page. */
+  .nda-doc h1 ~ h1 {
+    break-before: page;
+  }
+}

@@ -17,6 +17,11 @@ are set up. Update this section after every ticket.
   `<span class="...">`. Only the Mutual NDA ships a cover page; the
   others are standard terms only. `backend/` is a bare uv project with
   pytest checks that the catalog matches the files.
+- PL-2: `frontend/` is a Next.js 16 prototype (no backend) for a Mutual
+  NDA: form, live Markdown preview, PDF download via the print dialog.
+  `lib/nda.ts` builds the cover page from form values and appends
+  `templates/mutual-nda.md`, read at build time. Tests use Vitest and
+  Testing Library (`npm test`).
 
 ## Development process
 - Read the ticket with the Atlassian tools before starting.
