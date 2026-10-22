@@ -30,6 +30,9 @@ are set up. Update this section after every ticket.
   start. Placeholder sign-in (name + email, no password), user kept in
   sessionStorage. `scripts/start.sh` and `scripts/stop.sh` run it at
   http://localhost:8000.
+- PL-7: in the PDF the standard terms no longer start on a new page; they
+  follow the parties table, which is kept on one page together with the
+  signing sentence above it (`globals.css`).
 
 ## Development process
 - Read the ticket with the Atlassian tools before starting.

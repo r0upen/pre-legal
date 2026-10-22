@@ -67,8 +67,14 @@ body {
   body {
     background: white;
   }
-  /* Start the standard terms on a new page. */
-  .nda-doc h1 ~ h1 {
-    break-before: page;
+  /* Keep the parties (signature) table on one page. The standard terms follow
+     it with normal spacing; forcing them onto a new page left a mostly blank
+     page whenever the table spilled over (PL-7). */
+  .nda-doc table {
+    break-inside: avoid;
+  }
+  /* Keep the "By signing this Cover Page..." sentence with the table. */
+  .nda-doc p:has(+ table) {
+    break-after: avoid;
   }
 }
