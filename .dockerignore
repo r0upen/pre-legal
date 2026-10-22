@@ -1,0 +1,14 @@
+# Secrets must never enter the image.
+.env
+.env.*
+
+.git
+.claude
+**/node_modules
+**/.next
+**/out
+**/.venv
+**/__pycache__
+**/.pytest_cache
+*.db
+*.log

@@ -22,6 +22,14 @@ are set up. Update this section after every ticket.
   `lib/nda.ts` builds the cover page from form values and appends
   `templates/mutual-nda.md`, read at build time. Tests use Vitest and
   Testing Library (`npm test`).
+- PL-3: one Docker container. The frontend is a Next.js static export
+  (`cacheComponents` removed, since it cannot be used with export);
+  FastAPI (`backend/app/main.py`) serves it plus `/api/health`,
+  `/api/templates/mutual-nda` and `/api/login`. SQLite via stdlib
+  `sqlite3` (`backend/app/db.py`), one `users` table, recreated on every
+  start. Placeholder sign-in (name + email, no password), user kept in
+  sessionStorage. `scripts/start.sh` and `scripts/stop.sh` run it at
+  http://localhost:8000.
 
 ## Development process
 - Read the ticket with the Atlassian tools before starting.
