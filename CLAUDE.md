@@ -33,6 +33,15 @@ are set up. Update this section after every ticket.
 - PL-7: in the PDF the standard terms no longer start on a new page; they
   follow the parties table, which is kept on one page together with the
   signing sentence above it (`globals.css`).
+- PL-4: an AI chat (`NdaChat.tsx`) replaces the NDA form. `POST /api/chat`
+  (`backend/app/chat.py`, LiteLLM per the cerebras skill) is stateless: the
+  browser sends the history, the current fields and its local date, and gets
+  back the reply plus the merged fields (null or invalid values never
+  overwrite collected ones). Fields start empty; `isComplete()` in
+  `lib/nda.ts` gates Download PDF (modifications are optional). Chat history
+  lives in browser memory only. The standard terms come from
+  `/api/templates/mutual-nda` at runtime. `start.sh` passes `.env` with
+  `--env-file`, so its lines must be `KEY=value` with no spaces or quotes.
 
 ## Development process
 - Read the ticket with the Atlassian tools before starting.

@@ -39,7 +39,7 @@ export default function NdaApp() {
         <div>
           <h1 className="text-2xl font-semibold text-navy">Mutual NDA Creator</h1>
           <p className="text-sm text-slate-600">
-            Fill in the details and the agreement updates as you type. Download it as a PDF when you are done.
+            Chat with the assistant and the agreement fills in as you answer. Download it as a PDF when you are done.
           </p>
         </div>
         <p className="shrink-0 text-sm text-slate-600">

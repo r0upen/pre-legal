@@ -61,10 +61,13 @@ describe("NdaApp", () => {
   });
 
   it("skips sign-in when the user is already stored for this tab", async () => {
-    mockBackend();
+    const fetchMock = mockBackend();
     setStoredUser(ada);
     render(<NdaApp />);
     expect(await screen.findByRole("heading", { name: "Standard Terms" })).toBeInTheDocument();
+    expect(screen.getByText(/Chat with the assistant and the agreement fills in as you answer/)).toBeInTheDocument();
+    // Only the template is loaded; the chat waits for the user's first message.
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(["/api/templates/mutual-nda"]);
   });
 
   it("signs out back to the sign-in screen", async () => {
