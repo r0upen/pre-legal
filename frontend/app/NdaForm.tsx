@@ -9,7 +9,7 @@ type Props = {
 
 const YEAR_OPTIONS = Array.from({ length: 10 }, (_, i) => i + 1);
 
-const inputClass =
+export const inputClass =
   "mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
