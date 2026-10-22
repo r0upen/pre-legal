@@ -1,13 +1,18 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { buildCoverPage, buildNda, defaultValues, formatDate, stripSpans, type NdaValues } from "./nda";
+import { buildCoverPage, buildNda, emptyValues, formatDate, isComplete, stripSpans, type NdaValues } from "./nda";
 
 const standardTerms = readFileSync(path.join(__dirname, "..", "..", "templates", "mutual-nda.md"), "utf-8");
 
 const filled: NdaValues = {
-  ...defaultValues,
+  purpose: "Evaluating a partnership.",
   effectiveDate: "2026-03-05",
+  mndaExpires: true,
+  mndaTermYears: 1,
+  confidentialityPerpetual: false,
+  confidentialityYears: 1,
+  modifications: null,
   governingLaw: "Delaware",
   jurisdiction: "courts located in New Castle, DE",
   party1: { name: "Ada Lovelace", title: "CEO", company: "Acme Inc.", noticeAddress: "ada@acme.test" },
@@ -19,14 +24,16 @@ describe("formatDate", () => {
     expect(formatDate("2026-03-05")).toBe("March 5, 2026");
   });
 
-  it("returns empty string for an empty date", () => {
+  it("returns empty string for an empty or missing date", () => {
     expect(formatDate("")).toBe("");
+    expect(formatDate(null)).toBe("");
   });
 });
 
 describe("buildCoverPage", () => {
   it("shows placeholders for empty fields", () => {
-    const md = buildCoverPage(defaultValues);
+    const md = buildCoverPage(emptyValues);
+    expect(md).toContain("[Purpose]");
     expect(md).toContain("[Effective Date]");
     expect(md).toContain("Governing Law: [Governing Law state]");
     expect(md).toContain("[Party 1 Company]");
@@ -53,6 +60,14 @@ describe("buildCoverPage", () => {
     expect(buildCoverPage({ ...filled, confidentialityPerpetual: true })).toContain("- ☒ In perpetuity.");
   });
 
+  it("ticks neither option for a term that has not been answered yet", () => {
+    const md = buildCoverPage(emptyValues);
+    expect(md).toContain("- ☐ Expires [number of years] from Effective Date.");
+    expect(md).toContain("- ☐ Continues until terminated");
+    expect(md).toContain("- ☐ [number of years] from Effective Date, but in the case of trade secrets");
+    expect(md).toContain("- ☐ In perpetuity.");
+  });
+
   it("keeps the party table intact when values contain pipes or line breaks", () => {
     const md = buildCoverPage({
       ...filled,
@@ -64,6 +79,34 @@ describe("buildCoverPage", () => {
   it("says None when there are no modifications", () => {
     expect(buildCoverPage(filled)).toContain("### MNDA Modifications\n\nNone.");
     expect(buildCoverPage({ ...filled, modifications: "Section 8 is deleted." })).toContain("Section 8 is deleted.");
+  });
+});
+
+describe("isComplete", () => {
+  it("is false until anything is collected and true once everything required is", () => {
+    expect(isComplete(emptyValues)).toBe(false);
+    expect(isComplete(filled)).toBe(true);
+  });
+
+  it.each<[string, Partial<NdaValues>]>([
+    ["purpose", { purpose: null }],
+    ["a blank governing law", { governingLaw: "  " }],
+    ["jurisdiction", { jurisdiction: null }],
+    ["the effective date", { effectiveDate: null }],
+    ["an invalid effective date", { effectiveDate: "next Monday" }],
+    ["the MNDA term choice", { mndaExpires: null }],
+    ["the MNDA term years", { mndaTermYears: null }],
+    ["the confidentiality choice", { confidentialityPerpetual: null }],
+    ["the confidentiality years", { confidentialityYears: null }],
+    ["a party 1 detail", { party1: { ...filled.party1, noticeAddress: null } }],
+    ["a party 2 detail", { party2: { ...filled.party2, title: null } }],
+  ])("is false without %s", (_, missing) => {
+    expect(isComplete({ ...filled, ...missing })).toBe(false);
+  });
+
+  it("needs no years for a term that continues or is perpetual", () => {
+    expect(isComplete({ ...filled, mndaExpires: false, mndaTermYears: null })).toBe(true);
+    expect(isComplete({ ...filled, confidentialityPerpetual: true, confidentialityYears: null })).toBe(true);
   });
 });
 

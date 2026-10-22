@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { login, type User } from "@/lib/api";
-import { inputClass } from "./NdaForm";
+
+export const inputClass =
+  "mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-teal focus:outline-none focus:ring-1 focus:ring-teal";
 
 export default function LoginForm({ onLogin }: { onLogin: (user: User) => void }) {
   const [name, setName] = useState("");

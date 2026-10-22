@@ -1,17 +1,22 @@
 """FastAPI app: the /api routes plus the static frontend build."""
 
+import logging
 import os
 from contextlib import asynccontextmanager
+from datetime import date
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, StringConstraints
+from pydantic import BaseModel, Field, StringConstraints, field_validator
 
 from app import db
+from app.chat import ChatMessage, ChatTurn, NdaFields, chat_turn
+
+logger = logging.getLogger(__name__)
 
 # The Docker image mirrors the repo layout, so these paths work in both places.
 ROOT = Path(__file__).resolve().parents[2]
@@ -51,6 +56,19 @@ class User(BaseModel):
     email: str
 
 
+class ChatRequest(BaseModel):
+    messages: Annotated[list[ChatMessage], Field(min_length=1, max_length=200)]
+    fields: NdaFields
+    today: date  # the user's local date, for relative dates like "next Monday"
+
+    @field_validator("messages")
+    @classmethod
+    def ends_with_user(cls, messages: list[ChatMessage]) -> list[ChatMessage]:
+        if messages[-1].role != "user":
+            raise ValueError("the last message must be from the user")
+        return messages
+
+
 @app.get("/api/health")
 def health() -> dict:
     return {"status": "ok"}
@@ -66,6 +84,17 @@ def mutual_nda_template() -> PlainTextResponse:
 def login(body: LoginRequest, request: Request) -> User:
     """Placeholder sign-in: no password, the email identifies the user."""
     return User(**db.login(request.app.state.db_path, body.name, body.email))
+
+
+@app.post("/api/chat")
+def chat(body: ChatRequest) -> ChatTurn:
+    """One turn of the NDA interview: the assistant's reply plus the merged NDA fields."""
+    try:
+        return chat_turn(body.messages, body.fields, body.today)
+    except Exception as exc:
+        # Only the exception type: provider errors can echo request details.
+        logger.error("chat failed: %s", type(exc).__name__)
+        raise HTTPException(502, "The assistant is unavailable. Try again.")
 
 
 # Mounted last so the /api routes above take precedence. Skipped until `npm run build` has run.
