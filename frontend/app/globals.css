@@ -73,4 +73,8 @@ body {
   .nda-doc table {
     break-inside: avoid;
   }
+  /* Keep the "By signing this Cover Page..." sentence with the table. */
+  .nda-doc p:has(+ table) {
+    break-after: avoid;
+  }
 }
