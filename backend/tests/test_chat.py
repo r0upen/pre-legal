@@ -35,10 +35,14 @@ def chat_body(text="Acme Inc.", current=EMPTY) -> dict:
     return {"messages": [GREETING, {"role": "user", "content": text}], "fields": current, "today": "2026-10-22"}
 
 
+def model_output(reply="Thanks.", output_fields=EMPTY) -> str:
+    return json.dumps({"reply": reply, "fields": output_fields})
+
+
 @pytest.fixture
 def fake_llm(monkeypatch):
     """Replaces the LLM call; set .content to the JSON the model should return."""
-    fake = SimpleNamespace(calls=[], content=json.dumps({"reply": "Thanks.", "fields": EMPTY}))
+    fake = SimpleNamespace(calls=[], content=model_output())
 
     def completion(**kwargs):
         fake.calls.append(kwargs)
@@ -87,13 +91,29 @@ def test_merge_applies_corrections():
 
 
 def test_chat_returns_reply_and_merged_fields(client, fake_llm):
-    fake_llm.content = json.dumps({"reply": "Who signs for Acme?", "fields": fields(party1=EMPTY_PARTY | {"company": "Acme Inc."})})
+    fake_llm.content = model_output("Who signs for Acme?", fields(party1=EMPTY_PARTY | {"company": "Acme Inc."}))
     res = client.post("/api/chat", json=chat_body(current=fields(governingLaw="Delaware")))
     assert res.status_code == 200
     assert res.json() == {
         "reply": "Who signs for Acme?",
         "fields": fields(governingLaw="Delaware", party1=EMPTY_PARTY | {"company": "Acme Inc."}),
     }
+
+
+def test_system_prompt_covers_the_interview_rules(client, fake_llm):
+    client.post("/api/chat", json=chat_body())
+    prompt = fake_llm.calls[0]["messages"][0]["content"]
+    rules = [
+        "company or an individual",
+        '"Individual" as title',
+        "full name",
+        "ZIP code",
+        "briefly confirm",
+        "do not write a summary yourself",
+        "Confirm details",
+    ]
+    for rule in rules:
+        assert rule in prompt
 
 
 def test_chat_calls_the_model_as_the_cerebras_skill_prescribes(client, fake_llm):
@@ -131,7 +151,7 @@ def test_chat_rejects_malformed_model_output(client, fake_llm):
 # A reply the next request would reject must fail now (and be retried), not enter the history.
 @pytest.mark.parametrize("reply", ["", "   ", "x" * 4001], ids=["empty", "blank", "too-long"])
 def test_chat_rejects_replies_that_would_break_the_next_turn(client, fake_llm, reply):
-    fake_llm.content = json.dumps({"reply": reply, "fields": EMPTY})
+    fake_llm.content = model_output(reply)
     assert client.post("/api/chat", json=chat_body()).status_code == 502
 
 

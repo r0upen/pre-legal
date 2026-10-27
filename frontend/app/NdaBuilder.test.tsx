@@ -101,20 +101,54 @@ describe("NdaBuilder", () => {
     expect(body.messages).toHaveLength(4);
   });
 
-  it("enables the download only once every required detail is collected", async () => {
+  it("enables the download only once every detail is collected and confirmed", async () => {
     const print = vi.spyOn(window, "print").mockImplementation(() => {});
-    mockChat({ reply: "The draft is ready to download.", fields: complete });
+    mockChat({ reply: "Please check the details and confirm them.", fields: complete });
     const { user, send } = setup();
     const download = screen.getByRole("button", { name: "Download PDF" });
     expect(download).toBeDisabled();
     expect(screen.getByText(/Available once all required details/)).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Check the details" })).not.toBeInTheDocument();
 
     await send("Everything else is as you suggested");
-    await screen.findByText("The draft is ready to download.");
+    await screen.findByText("Please check the details and confirm them.");
+    const summary = within(screen.getByRole("region", { name: "Check the details" }));
+    expect(summary.getByText("Ada Lovelace, CEO")).toBeInTheDocument();
+    expect(summary.getByText("Expires 1 year from the Effective Date")).toBeInTheDocument();
+    expect(download).toBeDisabled();
+    expect(screen.getByText(/Available once you confirm the details/)).toBeInTheDocument();
+
+    await user.click(summary.getByRole("button", { name: "Confirm details" }));
+    expect(screen.queryByRole("region", { name: "Check the details" })).not.toBeInTheDocument();
     expect(download).toBeEnabled();
-    expect(screen.queryByText(/Available once all required details/)).not.toBeInTheDocument();
+    expect(download).toHaveFocus();
+    expect(screen.queryByText(/Available once/)).not.toBeInTheDocument();
     await user.click(download);
     expect(print).toHaveBeenCalledOnce();
+  });
+
+  it("asks for a new confirmation after a change, but not after a turn without one", async () => {
+    const changed = { ...complete, mndaTermYears: 2 };
+    mockChat(
+      { reply: "Please check the details.", fields: complete },
+      { reply: "You're welcome.", fields: complete },
+      { reply: "Updated the MNDA term from 1 year to 2 years.", fields: changed },
+    );
+    const { user, send } = setup();
+    const download = screen.getByRole("button", { name: "Download PDF" });
+    await send("No modifications");
+    await screen.findByText("Please check the details.");
+    await user.click(screen.getByRole("button", { name: "Confirm details" }));
+
+    await send("Thanks");
+    await screen.findByText("You're welcome.");
+    expect(download).toBeEnabled();
+
+    await send("Make the term 2 years");
+    await screen.findByText("Updated the MNDA term from 1 year to 2 years.");
+    expect(download).toBeDisabled();
+    const summary = within(screen.getByRole("region", { name: "Check the details" }));
+    expect(summary.getByText("Expires 2 years from the Effective Date")).toBeInTheDocument();
   });
 
   it("keeps the message and the fields when the assistant fails, so it can be resent", async () => {
