@@ -1,0 +1,86 @@
+# How the NDA chat works
+
+This page explains, in plain English, what happens from the moment someone
+opens Pre-Legal to the moment they download a Mutual NDA as a PDF.
+
+## The pieces
+
+- **The browser app** shows the chat on the left and a live preview of the
+  agreement on the right.
+- **The server** runs in the same Docker container. It hands out the
+  agreement's standard terms and passes chat messages to the AI.
+- **The AI** is the gpt-oss-120b model, reached through OpenRouter and run
+  on Cerebras for speed. It conducts the interview.
+- **The template** is the Common Paper Mutual NDA. The standard terms never
+  change; only the cover page (parties, dates, terms) is filled in.
+
+## 1. Signing in and starting
+
+The user signs in with a name and email (a placeholder: there is no
+password). The browser then loads the standard terms from the server and
+shows an empty agreement with bracketed placeholders such as
+"[Party 1 Company]". The chat opens with a fixed greeting asking about the
+first party. Nothing has been sent to the AI yet.
+
+## 2. Each message
+
+When the user sends a message, the browser sends the server three things:
+
+- the whole conversation so far,
+- the details collected so far,
+- the user's local date, so "next Monday" means their Monday.
+
+The server adds its instructions for the AI and the current details, and
+asks the AI for one answer. The AI must reply in a fixed format with two
+parts: what to say to the user, and the full set of agreement details as
+it now understands them.
+
+The server does not trust that answer blindly. It drops anything invalid,
+such as an impossible date or a term outside 1 to 10 years, and a detail
+the AI leaves empty never erases one already collected. The server then
+sends the reply and the updated details back to the browser, which shows
+the reply in the chat and fills in the preview straight away.
+
+The server keeps nothing between messages: the conversation lives only in
+the browser. Reloading the page starts a new conversation.
+
+If the AI cannot be reached, the user sees an error and their message stays
+in the box so they can send it again.
+
+## 3. How the AI interviews
+
+The instructions tell the AI to:
+
+- ask about one topic at a time, in a set order: the first party, the
+  second party, purpose, effective date, how long the agreement lasts, how
+  long confidentiality lasts, governing law, which courts, and any changes
+  to the standard terms;
+- record several details at once if the user gives them together;
+- ask for a full name (first and last) for each signer;
+- ask for a complete notice address: street, city, state and ZIP code, or
+  the equivalent including the country outside the US;
+- ask whether a party is a company or an individual when that is unclear
+  (an individual's name is used as the company too);
+- briefly confirm when the user changes an earlier answer;
+- never invent names, addresses or dates, and stay on the topic of the NDA;
+- remind the user that it is not a lawyer and the draft should be reviewed
+  by one.
+
+## 4. Checking the details
+
+Once every required detail is collected, a "Check the details" box appears
+above the preview. The app builds this summary itself from the collected
+details, so it always matches what will be printed. The AI only asks the
+user to check it.
+
+The user either clicks **Confirm details** or tells the AI what to change.
+If anything changes after confirming, the box comes back and must be
+confirmed again.
+
+## 5. Downloading the PDF
+
+**Download PDF** is enabled only when every detail is collected and the
+user has confirmed the summary. Clicking it opens the browser's print
+dialog, where the user chooses "Save as PDF". The printed copy contains the
+cover page, the standard terms and a note that the draft is a starting
+point for review by a lawyer, not legal advice.

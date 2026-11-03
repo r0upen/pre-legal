@@ -1,7 +1,16 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { buildCoverPage, buildNda, emptyValues, formatDate, isComplete, stripSpans, type NdaValues } from "./nda";
+import {
+  buildCoverPage,
+  buildNda,
+  emptyValues,
+  formatDate,
+  isComplete,
+  stripSpans,
+  summarize,
+  type NdaValues,
+} from "./nda";
 
 const standardTerms = readFileSync(path.join(__dirname, "..", "..", "templates", "mutual-nda.md"), "utf-8");
 
@@ -107,6 +116,35 @@ describe("isComplete", () => {
   it("needs no years for a term that continues or is perpetual", () => {
     expect(isComplete({ ...filled, mndaExpires: false, mndaTermYears: null })).toBe(true);
     expect(isComplete({ ...filled, confidentialityPerpetual: true, confidentialityYears: null })).toBe(true);
+  });
+});
+
+describe("summarize", () => {
+  it("lists every detail in readable form", () => {
+    expect(summarize(filled)).toEqual([
+      ["Party 1 company", "Acme Inc."],
+      ["Party 1 signer", "Ada Lovelace, CEO"],
+      ["Party 1 notice address", "ada@acme.test"],
+      ["Party 2 company", "Globex LLC"],
+      ["Party 2 signer", "Alan Turing, CTO"],
+      ["Party 2 notice address", "alan@globex.test"],
+      ["Purpose", "Evaluating a partnership."],
+      ["Effective date", "March 5, 2026"],
+      ["MNDA term", "Expires 1 year from the Effective Date"],
+      ["Term of confidentiality", "1 year"],
+      ["Governing law", "Delaware"],
+      ["Jurisdiction", "courts located in New Castle, DE"],
+      ["Modifications", "None"],
+    ]);
+  });
+
+  it("describes the other term choices and modifications", () => {
+    const rows = new Map(
+      summarize({ ...filled, mndaExpires: false, confidentialityPerpetual: true, modifications: "Section 8 is deleted." }),
+    );
+    expect(rows.get("MNDA term")).toBe("Continues until terminated");
+    expect(rows.get("Term of confidentiality")).toBe("In perpetuity");
+    expect(rows.get("Modifications")).toBe("Section 8 is deleted.");
   });
 });
 

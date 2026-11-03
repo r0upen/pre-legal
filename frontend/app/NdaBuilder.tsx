@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { sendChat, type ChatMessage } from "@/lib/api";
 import { buildNda, emptyValues, isComplete } from "@/lib/nda";
 import NdaChat from "./NdaChat";
+import NdaSummary from "./NdaSummary";
 
 export const GREETING =
   "Hi, I'll help you draft a Mutual NDA, one question at a time. Let's start with the first party: what is the company's name, and who will sign for it?";
@@ -14,10 +15,20 @@ export default function NdaBuilder({ standardTerms }: { standardTerms: string })
   // Kept in memory only: a reload starts a new conversation.
   const [messages, setMessages] = useState<ChatMessage[]>([{ role: "assistant", content: GREETING }]);
   const [values, setValues] = useState(emptyValues);
+  // Set by Confirm details; any change from the chat clears it, so the summary shows again.
+  const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const markdown = buildNda(values, standardTerms);
   const complete = isComplete(values);
+  const ready = complete && confirmed;
+  const hint = complete ? "Available once you confirm the details below." : "Available once all required details are collected.";
+  const downloadRef = useRef<HTMLButtonElement>(null);
+
+  // Confirming removes the summary panel and its focused button, so keep keyboard focus on the next step.
+  useEffect(() => {
+    if (confirmed) downloadRef.current?.focus();
+  }, [confirmed]);
 
   // The user's message joins the history only once the assistant has answered,
   // so a failed send can be retried without duplicating it.
@@ -29,6 +40,8 @@ export default function NdaBuilder({ standardTerms }: { standardTerms: string })
       const turn = await sendChat(next, values);
       setMessages([...next, { role: "assistant", content: turn.reply }]);
       setValues(turn.fields);
+      // Both come from the same JSON shape, so equal values serialize the same way.
+      if (JSON.stringify(turn.fields) !== JSON.stringify(values)) setConfirmed(false);
       return true;
     } catch {
       setError("The assistant could not respond. Your message is still in the box, so you can send it again.");
@@ -51,17 +64,19 @@ export default function NdaBuilder({ standardTerms }: { standardTerms: string })
         <div className="flex items-center justify-between gap-4 print:hidden">
           <h2 className="text-lg font-semibold text-navy">Preview</h2>
           <div className="flex items-center gap-3">
-            {!complete && <p className="text-xs text-slate-500">Available once all required details are collected.</p>}
+            {!ready && <p className="text-xs text-slate-500">{hint}</p>}
             <button
+              ref={downloadRef}
               type="button"
               onClick={() => window.print()}
-              disabled={!complete}
+              disabled={!ready}
               className="rounded-md bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-teal disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-navy"
             >
               Download PDF
             </button>
           </div>
         </div>
+        {complete && !confirmed && <NdaSummary values={values} onConfirm={() => setConfirmed(true)} />}
         <article className="nda-doc rounded-lg border border-slate-200 bg-white p-10 shadow-sm print:border-0 print:p-0 print:shadow-none">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
         </article>

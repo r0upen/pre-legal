@@ -120,6 +120,27 @@ export function isComplete(v: NdaValues): boolean {
   );
 }
 
+// The details the user confirms before downloading, as [label, value] rows.
+// Only shown once isComplete(v), so it needs no placeholders for missing values.
+export function summarize(v: NdaValues): [string, string][] {
+  const party = (n: 1 | 2, p: Party): [string, string][] => [
+    [`Party ${n} company`, p.company ?? ""],
+    [`Party ${n} signer`, [p.name, p.title].filter(Boolean).join(", ")],
+    [`Party ${n} notice address`, p.noticeAddress ?? ""],
+  ];
+  return [
+    ...party(1, v.party1),
+    ...party(2, v.party2),
+    ["Purpose", v.purpose ?? ""],
+    ["Effective date", formatDate(v.effectiveDate)],
+    ["MNDA term", v.mndaExpires ? `Expires ${years(v.mndaTermYears)} from the Effective Date` : "Continues until terminated"],
+    ["Term of confidentiality", v.confidentialityPerpetual ? "In perpetuity" : years(v.confidentialityYears)],
+    ["Governing law", v.governingLaw ?? ""],
+    ["Jurisdiction", v.jurisdiction ?? ""],
+    ["Modifications", v.modifications?.trim() || "None"],
+  ];
+}
+
 // The standard terms mark cover page references with <span> tags; keep the text.
 export function stripSpans(markdown: string): string {
   return markdown.replace(/<\/?span[^>]*>/g, "");

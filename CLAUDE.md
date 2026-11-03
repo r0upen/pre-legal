@@ -38,10 +38,16 @@ are set up. Update this section after every ticket.
   browser sends the history, the current fields and its local date, and gets
   back the reply plus the merged fields (null or invalid values never
   overwrite collected ones). Fields start empty; `isComplete()` in
-  `lib/nda.ts` gates Download PDF (modifications are optional). Chat history
-  lives in browser memory only. The standard terms come from
+  `lib/nda.ts` tells when everything is collected (modifications are
+  optional). Chat history lives in browser memory only. The standard terms come from
   `/api/templates/mutual-nda` at runtime. `start.sh` passes `.env` with
   `--env-file`, so its lines must be `KEY=value` with no spaces or quotes.
+- PL-8: the system prompt asks for full signer names and complete notice
+  addresses, asks whether a party is a company or an individual (an
+  individual's name also goes in Company, title "Individual") and confirms
+  corrections. Once `isComplete()`, `NdaSummary.tsx` shows a summary built
+  by `summarize()` in `lib/nda.ts`, not by the AI; Download PDF needs its
+  Confirm details click, and any field change from the chat clears it.
 
 ## Development process
 - Read the ticket with the Atlassian tools before starting.
@@ -49,6 +55,8 @@ are set up. Update this section after every ticket.
   feature-dev phases.
 - Use feature-dev for feature tickets. One-off data or setup tasks don't need it.
 - Add unit and integration tests for new behavior and make sure all tests pass.
+- After each ticket, update `docs/how-it-works.md` in plain English (no code)
+  to reflect what changed, as part of the ticket's PR.
 - Open a PR with the GitHub tools when done. Never push directly to main
   unless I ask.
 - Requirements live in Jira tickets, not in this file.
