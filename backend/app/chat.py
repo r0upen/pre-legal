@@ -14,6 +14,9 @@ load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 MODEL = "openrouter/openai/gpt-oss-120b"
 EXTRA_BODY = {"provider": {"order": ["cerebras"], "allow_fallbacks": False}}
+# Without a cap OpenRouter reserves credit for ~41,000 tokens per call. The longest
+# measured turn (hidden reasoning included) used about 1,100.
+MAX_TOKENS = 2000
 
 
 # The model's output is not trusted: values that are blank or invalid become None,
@@ -132,6 +135,7 @@ def chat_turn(messages: list[ChatMessage], fields: NdaFields, today: date) -> Ch
         messages=[{"role": "system", "content": system}, *(m.model_dump() for m in messages)],
         response_format=ChatTurn,
         extra_body=EXTRA_BODY,
+        max_tokens=MAX_TOKENS,
         timeout=30,
     )
     turn = ChatTurn.model_validate_json(response.choices[0].message.content)
