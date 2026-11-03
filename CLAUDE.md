@@ -55,6 +55,8 @@ are set up. Update this section after every ticket.
   feature-dev phases.
 - Use feature-dev for feature tickets. One-off data or setup tasks don't need it.
 - Add unit and integration tests for new behavior and make sure all tests pass.
+- After each ticket, update `docs/how-it-works.md` in plain English (no code)
+  to reflect what changed, as part of the ticket's PR.
 - Open a PR with the GitHub tools when done. Never push directly to main
   unless I ask.
 - Requirements live in Jira tickets, not in this file.
