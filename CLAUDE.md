@@ -52,6 +52,15 @@ are set up. Update this section after every ticket.
   the cerebras skill requires it. Measured turns use up to about 1,100
   tokens, hidden reasoning included. A reply cut off at the cap fails
   validation and shows the usual "could not respond" error.
+- PL-10: the model returns `ModelTurn` (`fields`, `reply`, `question`);
+  `question` must be non-empty (else 502) so every turn asks one, and
+  `chat_turn` joins reply and question into the `ChatTurn.reply` the
+  browser gets. The prompt
+  lists the questions in order, one detail each, says which Party field is
+  the party's name (`company`) and which the signer's (`name`), double-checks
+  clearly odd values once, bans internal names in replies, and sets a warmer
+  tone; so does the greeting in `NdaBuilder.tsx`. Keep prompt examples free
+  of concrete names and dates: the model copies them into replies.
 
 ## Development process
 - Read the ticket with the Atlassian tools before starting.

@@ -19,8 +19,8 @@ opens Pre-Legal to the moment they download a Mutual NDA as a PDF.
 The user signs in with a name and email (a placeholder: there is no
 password). The browser then loads the standard terms from the server and
 shows an empty agreement with bracketed placeholders such as
-"[Party 1 Company]". The chat opens with a fixed greeting asking about the
-first party. Nothing has been sent to the AI yet.
+"[Party 1 Company]". The chat opens with a fixed greeting that asks for the
+first party's name. Nothing has been sent to the AI yet.
 
 ## 2. Each message
 
@@ -31,9 +31,12 @@ When the user sends a message, the browser sends the server three things:
 - the user's local date, so "next Monday" means their Monday.
 
 The server adds its instructions for the AI and the current details, and
-asks the AI for one answer. The AI must reply in a fixed format with two
-parts: what to say to the user, and the full set of agreement details as
-it now understands them.
+asks the AI for one answer. The AI must reply in a fixed format with three
+parts: the full set of agreement details as it now understands them, a
+short acknowledgement of what the user just said, and the next question.
+The question is a required part of its own, so every reply asks one and the
+conversation never stalls. The server joins the acknowledgement and the
+question into the single message the user sees.
 
 The server also limits how long that answer may be: about 2,000 tokens,
 roughly 1,500 words, counting the AI's hidden reasoning as well as its
@@ -57,17 +60,26 @@ in the box so they can send it again.
 
 The instructions tell the AI to:
 
-- ask about one topic at a time, in a set order: the first party, the
-  second party, purpose, effective date, how long the agreement lasts, how
-  long confidentiality lasts, governing law, which courts, and any changes
-  to the standard terms;
+- sound warm, friendly and conversational, while staying short and
+  professional, and acknowledge each answer in its own words;
+- ask exactly one question at a time, in a set order: for each party its
+  name, who signs, the signer's title and the notice address; then the
+  purpose, the effective date, whether the agreement ends after a set term
+  and if so how many years, how long confidentiality lasts, governing law,
+  which courts, and any changes to the standard terms;
 - record several details at once if the user gives them together;
 - ask for a full name (first and last) for each signer;
 - ask for a complete notice address: street, city, state and ZIP code, or
   the equivalent including the country outside the US;
 - ask whether a party is a company or an individual when that is unclear
   (an individual's name is used as the company too);
-- briefly confirm when the user changes an earlier answer;
+- say what changed when the user changes an earlier answer;
+- gently ask once when an answer is clearly not a real value (random
+  letters, a placeholder like "test", or an answer that does not fit the
+  question), and accept it as given if the user confirms; real names are
+  never questioned just because they are uncommon;
+- talk about the details in plain language, never in the app's internal
+  terms (for example "November 3, 2026" rather than "2026-11-03");
 - never invent names, addresses or dates, and stay on the topic of the NDA;
 - remind the user that it is not a lawyer and the draft should be reviewed
   by one.

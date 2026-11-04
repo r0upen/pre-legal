@@ -9,7 +9,7 @@ import NdaChat from "./NdaChat";
 import NdaSummary from "./NdaSummary";
 
 export const GREETING =
-  "Hi, I'll help you draft a Mutual NDA, one question at a time. Let's start with the first party: what is the company's name, and who will sign for it?";
+  "Hi there! I'm here to help you put together a Mutual NDA. I'll ask one thing at a time, and the draft fills in as we go. To start, what is the name of the first party?";
 
 export default function NdaBuilder({ standardTerms }: { standardTerms: string }) {
   // Kept in memory only: a reload starts a new conversation.
