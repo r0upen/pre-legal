@@ -7,7 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app import chat
-from app.chat import EXTRA_BODY, MODEL, ChatTurn, NdaFields, merge
+from app.chat import EXTRA_BODY, MAX_TOKENS, MODEL, ChatTurn, NdaFields, merge
 from app.main import app
 
 EMPTY_PARTY = {"name": None, "title": None, "company": None, "noticeAddress": None}
@@ -121,6 +121,7 @@ def test_chat_calls_the_model_as_the_cerebras_skill_prescribes(client, fake_llm)
     [call] = fake_llm.calls
     assert call["model"] == MODEL
     assert call["extra_body"] == EXTRA_BODY
+    assert call["max_tokens"] == MAX_TOKENS
     assert call["response_format"] is ChatTurn
     assert call["timeout"] == 30
     assert "stream" not in call

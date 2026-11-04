@@ -48,6 +48,10 @@ are set up. Update this section after every ticket.
   corrections. Once `isComplete()`, `NdaSummary.tsx` shows a summary built
   by `summarize()` in `lib/nda.ts`, not by the AI; Download PDF needs its
   Confirm details click, and any field change from the chat clears it.
+- PL-9: every LLM call passes `max_tokens=MAX_TOKENS` (2000, in `chat.py`);
+  the cerebras skill requires it. Measured turns use up to about 1,100
+  tokens, hidden reasoning included. A reply cut off at the cap fails
+  validation and shows the usual "could not respond" error.
 
 ## Development process
 - Read the ticket with the Atlassian tools before starting.

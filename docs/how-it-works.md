@@ -35,6 +35,12 @@ asks the AI for one answer. The AI must reply in a fixed format with two
 parts: what to say to the user, and the full set of agreement details as
 it now understands them.
 
+The server also limits how long that answer may be: about 2,000 tokens,
+roughly 1,500 words, counting the AI's hidden reasoning as well as its
+reply. A normal turn uses a few hundred. Without a limit, the AI service
+sets aside credit for an answer about twenty times longer on every message,
+so the chat could fail while the account still had credit.
+
 The server does not trust that answer blindly. It drops anything invalid,
 such as an impossible date or a term outside 1 to 10 years, and a detail
 the AI leaves empty never erases one already collected. The server then
