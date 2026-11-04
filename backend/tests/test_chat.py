@@ -7,7 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app import chat
-from app.chat import EXTRA_BODY, MAX_TOKENS, MODEL, ChatTurn, NdaFields, merge
+from app.chat import EXTRA_BODY, MAX_TOKENS, MODEL, ModelTurn, NdaFields, merge
 from app.main import app
 
 EMPTY_PARTY = {"name": None, "title": None, "company": None, "noticeAddress": None}
@@ -35,8 +35,8 @@ def chat_body(text="Acme Inc.", current=EMPTY) -> dict:
     return {"messages": [GREETING, {"role": "user", "content": text}], "fields": current, "today": "2026-10-22"}
 
 
-def model_output(reply="Thanks.", output_fields=EMPTY) -> str:
-    return json.dumps({"reply": reply, "fields": output_fields})
+def model_output(reply="Thanks.", question="Who signs for it?", output_fields=EMPTY) -> str:
+    return json.dumps({"fields": output_fields, "reply": reply, "question": question})
 
 
 @pytest.fixture
@@ -91,13 +91,26 @@ def test_merge_applies_corrections():
 
 
 def test_chat_returns_reply_and_merged_fields(client, fake_llm):
-    fake_llm.content = model_output("Who signs for Acme?", fields(party1=EMPTY_PARTY | {"company": "Acme Inc."}))
+    fake_llm.content = model_output(
+        "Thanks, Acme it is.", "Who signs for Acme?", fields(party1=EMPTY_PARTY | {"company": "Acme Inc."})
+    )
     res = client.post("/api/chat", json=chat_body(current=fields(governingLaw="Delaware")))
     assert res.status_code == 200
     assert res.json() == {
-        "reply": "Who signs for Acme?",
+        "reply": "Thanks, Acme it is. Who signs for Acme?",
         "fields": fields(governingLaw="Delaware", party1=EMPTY_PARTY | {"company": "Acme Inc."}),
     }
+
+
+# The acknowledgement may be empty, e.g. when the model double-checks an unusual answer.
+@pytest.mark.parametrize(
+    ("reply", "question", "expected"),
+    [("", "Is CUYGBNJVBN right?", "Is CUYGBNJVBN right?"), ("  Great.  ", " Who signs? ", "Great. Who signs?")],
+    ids=["no-acknowledgement", "whitespace"],
+)
+def test_chat_joins_acknowledgement_and_question(client, fake_llm, reply, question, expected):
+    fake_llm.content = model_output(reply, question)
+    assert client.post("/api/chat", json=chat_body()).json()["reply"] == expected
 
 
 def test_system_prompt_covers_the_interview_rules(client, fake_llm):
@@ -108,9 +121,13 @@ def test_system_prompt_covers_the_interview_rules(client, fake_llm):
         '"Individual" as title',
         "full name",
         "ZIP code",
-        "briefly confirm",
+        "say what changed",
         "do not write a summary yourself",
         "Confirm details",
+        "exactly one question about one detail",
+        "Never show field names",
+        "clearly not a real value",
+        "warm, friendly",
     ]
     for rule in rules:
         assert rule in prompt
@@ -122,7 +139,7 @@ def test_chat_calls_the_model_as_the_cerebras_skill_prescribes(client, fake_llm)
     assert call["model"] == MODEL
     assert call["extra_body"] == EXTRA_BODY
     assert call["max_tokens"] == MAX_TOKENS
-    assert call["response_format"] is ChatTurn
+    assert call["response_format"] is ModelTurn
     assert call["timeout"] == 30
     assert "stream" not in call
     system, *history = call["messages"]
@@ -150,9 +167,13 @@ def test_chat_rejects_malformed_model_output(client, fake_llm):
 
 
 # A reply the next request would reject must fail now (and be retried), not enter the history.
-@pytest.mark.parametrize("reply", ["", "   ", "x" * 4001], ids=["empty", "blank", "too-long"])
-def test_chat_rejects_replies_that_would_break_the_next_turn(client, fake_llm, reply):
-    fake_llm.content = model_output(reply)
+@pytest.mark.parametrize(
+    ("reply", "question"),
+    [("", ""), ("   ", "  "), ("Great.", " "), ("x" * 4001, "Who signs?")],
+    ids=["empty", "blank", "no-question", "too-long"],
+)
+def test_chat_rejects_replies_that_would_break_the_next_turn(client, fake_llm, reply, question):
+    fake_llm.content = model_output(reply, question)
     assert client.post("/api/chat", json=chat_body()).status_code == 502
 
 
