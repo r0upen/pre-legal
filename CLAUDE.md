@@ -26,9 +26,8 @@ are set up. Update this section after every ticket.
   (`cacheComponents` removed, since it cannot be used with export);
   FastAPI (`backend/app/main.py`) serves it plus `/api/health`,
   `/api/templates/mutual-nda` and `/api/login`. SQLite via stdlib
-  `sqlite3` (`backend/app/db.py`), one `users` table, recreated on every
-  start. Placeholder sign-in (name + email, no password), user kept in
-  sessionStorage. `scripts/start.sh` and `scripts/stop.sh` run it at
+  `sqlite3` (`backend/app/db.py`), recreated on every start. Placeholder
+  sign-in at first (PL-6 replaced it with real accounts). `scripts/start.sh` and `scripts/stop.sh` run it at
   http://localhost:8000.
 - PL-7: in the PDF the standard terms no longer start on a new page; they
   follow the parties table, which is kept on one page together with the
@@ -83,6 +82,20 @@ are set up. Update this section after every ticket.
   had to echo every field it re-copied the long default wording and
   altered it. `/api/chat` takes a `document` id and checks `fields`
   against that document's model.
+- PL-6: real accounts replace the PL-3 placeholder sign-in. `auth.py`:
+  passwords hashed with stdlib `scrypt`; a random session token in an
+  HttpOnly, SameSite=Lax cookie, only its hash stored (`sessions` table, 7
+  days). `current_user` guards `/api/chat`, `/api/choose` and `/api/drafts`;
+  any 401 returns the browser to the log in screen. `drafts.py`: the browser
+  autosaves the full draft (`PUT /api/drafts/{id}`) after each reply and
+  confirm, so `/api/chat` stays stateless; `lib/api.ts` runs saves one at a
+  time and `getDraft` waits for them; a draft is created when a document
+  starts, and every query filters on `user_id`. `Workspace.tsx` holds the
+  sidebar (`Sidebar.tsx`) and the builder, remounted through `key` for each
+  draft or New document; Change document is gone. A reply arriving after
+  leaving a draft is dropped, not saved. The notice is one footer in `App.tsx`;
+  the PDF's copy sits above the agreement's title. The sidebar is a drawer
+  below `xl`. Known limitations before real users are in `docs/how-it-works.md`.
 
 ## Development process
 - Read the ticket with the Atlassian tools before starting.

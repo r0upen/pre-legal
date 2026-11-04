@@ -13,8 +13,11 @@ Requires Docker Desktop, running.
 - `scripts/start.sh` - build and start the app in one container at http://localhost:8000
 - `scripts/stop.sh` - stop it
 
-The database is SQLite and is recreated empty every time the app starts.
-Sign-in is a placeholder: there is no password and nothing is verified.
+The database is SQLite and is recreated empty every time the app starts, so
+accounts and saved drafts last only until the next restart.
+
+Not ready for real users yet: see [known limitations](docs/how-it-works.md#known-limitations-before-real-users)
+(two tabs on one draft, secure cookie over HTTPS, login rate limiting, password reset).
 
 ## Develop
 

@@ -1,9 +1,10 @@
 # Pre-Legal frontend
 
 Next.js app for drafting the Common Paper agreements by chatting with an AI.
-After a placeholder sign-in, the user chooses an agreement, answers the
+After signing up or logging in, the user chooses an agreement, answers the
 assistant's questions while a live preview fills in, confirms a summary and
-downloads the agreement as a PDF through the browser print dialog.
+downloads the agreement as a PDF through the browser print dialog. Drafts save
+themselves and can be reopened from a sidebar.
 
 The app is a static export (`output: "export"`): `npm run build` writes plain
 HTML and JS to `out/`, which the FastAPI backend serves. The list of agreements

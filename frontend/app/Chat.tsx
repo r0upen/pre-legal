@@ -9,24 +9,23 @@ type Props = {
   error: string;
   // Resolves to true once the assistant has answered; the typed text is kept otherwise.
   onSend: (text: string) => Promise<boolean>;
-  // The agreement being drafted, shown in the header with a way to change it.
+  // The agreement being drafted, shown in the header.
   documentName?: string;
-  onChangeDocument?: () => void;
   // Buttons shown under the latest message, such as document suggestions.
   children?: React.ReactNode;
 };
 
 const bubble = "max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm";
 
-export default function Chat({ messages, pending, error, onSend, documentName, onChangeDocument, children }: Props) {
+export default function Chat({ messages, pending, error, onSend, documentName, children }: Props) {
   const [draft, setDraft] = useState("");
   const text = draft.trim();
   const logRef = useRef<HTMLOListElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Start in the message box, except on touch screens, where focusing would pop up the keyboard.
-  // Return to it whenever the document changes: the button clicked to start or change one
-  // disappears, and focus would otherwise fall to the page.
+  // Return to it once a document starts: the button clicked to start it disappears, and focus
+  // would otherwise fall to the page.
   const firstRender = useRef(true);
   useEffect(() => {
     if (!firstRender.current || window.matchMedia?.("(pointer: fine)").matches) inputRef.current?.focus();
@@ -76,15 +75,6 @@ export default function Chat({ messages, pending, error, onSend, documentName, o
           <h2 className="text-sm font-semibold text-navy">Pre-Legal assistant</h2>
           {documentName && <p className="truncate text-xs text-slate-500">{documentName}</p>}
         </div>
-        {onChangeDocument && (
-          <button
-            type="button"
-            onClick={onChangeDocument}
-            className="shrink-0 rounded-md border border-slate-300 px-3 py-1 text-xs text-slate-600 hover:border-teal hover:text-teal"
-          >
-            Change document
-          </button>
-        )}
       </header>
       <ol ref={logRef} role="log" aria-live="polite" className="flex-1 space-y-3 overflow-y-auto bg-slate-50 px-4 py-5">
         {messages.map((m, i) => (

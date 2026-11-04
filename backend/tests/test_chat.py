@@ -5,13 +5,11 @@ import json
 from types import SimpleNamespace
 
 import pytest
-from fastapi.testclient import TestClient
 
 from app import chat
 from app.chat import EXTRA_BODY, MAX_TOKENS, MODEL, ChooseTurn, merge, model_turn
 from app.documents import DOCUMENTS, fields_model
 from app.fields import NdaFields
-from app.main import app
 
 EMPTY_PARTY = {"name": None, "title": None, "company": None, "noticeAddress": None}
 EMPTY = {
@@ -61,10 +59,8 @@ def fake_llm(monkeypatch):
 
 
 @pytest.fixture
-def client(tmp_path, monkeypatch, fake_llm):
-    monkeypatch.setenv("PRELEGAL_DB", str(tmp_path / "test.db"))
-    with TestClient(app) as c:
-        yield c
+def client(signed_in_client, fake_llm):
+    return signed_in_client
 
 
 @pytest.mark.parametrize(

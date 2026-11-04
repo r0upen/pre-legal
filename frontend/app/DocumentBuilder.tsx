@@ -1,9 +1,20 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { chooseDocument, getStandardTerms, sendChat, type ChatMessage } from "@/lib/api";
+import {
+  chooseDocument,
+  createDraft,
+  getStandardTerms,
+  sendChat,
+  updateDraft,
+  type ChatMessage,
+  type Draft,
+  type DraftState,
+  type DraftSummary,
+} from "@/lib/api";
 import { documentKind, type DocValues, type DocumentSpec } from "@/lib/documents";
 import Chat from "./Chat";
 import DocumentChoices from "./DocumentChoices";
@@ -13,32 +24,41 @@ export const OPENING =
   "Hi there! I can help you draft a legal agreement from Common Paper's standard templates. What do you need? Pick one below, or describe it in your own words.";
 const TITLE = "Pre-Legal";
 
-export default function DocumentBuilder({ documents }: { documents: DocumentSpec[] }) {
-  // Kept in memory only: a reload starts a new conversation.
-  const [messages, setMessages] = useState<ChatMessage[]>([{ role: "assistant", content: OPENING }]);
+type Props = {
+  documents: DocumentSpec[];
+  // The draft to reopen; without one the chat starts by choosing a document.
+  saved: Draft | null;
+  // Called once the new draft exists, so the sidebar can mark it as the open one.
+  onCreated: (id: number) => void;
+  // Called after every save, so the sidebar stays up to date.
+  onSaved: (summary: DraftSummary) => void;
+};
+
+export default function DocumentBuilder({ documents, saved, onCreated, onSaved }: Props) {
+  const [messages, setMessages] = useState<ChatMessage[]>(saved?.messages ?? [{ role: "assistant", content: OPENING }]);
   // Before a document is chosen the chat helps pick one; recommendation is the AI's pick.
   const [recommendation, setRecommendation] = useState<string | null>(null);
-  // Once chosen: the document, where its interview starts in the chat, and its fields.
-  const [doc, setDoc] = useState<DocumentSpec | null>(null);
-  const [start, setStart] = useState(0);
-  const [values, setValues] = useState<DocValues | null>(null);
-  // Tagged with the document, so terms that arrive after switching documents are ignored;
-  // text is null when they could not be loaded.
-  const [terms, setTerms] = useState<{ id: string; text: string | null } | null>(null);
+  // Once chosen: the saved draft, its document, where its interview starts in the chat, and its fields.
+  const [draftId, setDraftId] = useState(saved?.id ?? null);
+  const [doc, setDoc] = useState(documents.find((d) => d.id === saved?.document) ?? null);
+  const [start, setStart] = useState(saved?.start ?? 0);
+  const [values, setValues] = useState<DocValues | null>(saved?.fields ?? null);
+  // undefined while loading; null when they could not be loaded.
+  const [standardTerms, setStandardTerms] = useState<string | null | undefined>(undefined);
   // Set by Confirm details; any change from the chat clears it, so the summary shows again.
-  const [confirmed, setConfirmed] = useState(false);
+  const [confirmed, setConfirmed] = useState(saved?.confirmed ?? false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const [saveFailed, setSaveFailed] = useState(false);
 
-  // Bumped by Change document, so a reply to a message sent before it is ignored.
+  // Bumped when the user moves to another document, so a reply that arrives after that is dropped:
+  // saving it could overwrite a newer copy of the draft if they have since come back to it.
   const generation = useRef(0);
 
   const kind = doc && documentKind(doc);
-  const loaded = doc && terms?.id === doc.id ? terms : null;
-  const standardTerms = loaded?.text ?? null;
   const complete = !!kind && !!values && kind.isComplete(values);
   // Without the standard terms there is nothing to print, whatever the chat has collected.
-  const ready = complete && confirmed && standardTerms !== null;
+  const ready = complete && confirmed && typeof standardTerms === "string";
   const showSummary = complete && !confirmed;
   const hint = !doc
     ? "Available once you choose an agreement."
@@ -47,11 +67,18 @@ export default function DocumentBuilder({ documents }: { documents: DocumentSpec
       : "Available once all required details are collected.";
   const downloadRef = useRef<HTMLButtonElement>(null);
   const documentRef = useRef<HTMLDivElement>(null);
+  const docId = doc?.id;
 
-  // Confirming removes the summary panel and its focused button, so keep keyboard focus on the next step.
+  useEffect(
+    () => () => {
+      generation.current += 1;
+    },
+    [],
+  );
+
   useEffect(() => {
-    if (confirmed) downloadRef.current?.focus();
-  }, [confirmed]);
+    if (docId) getStandardTerms(docId).then(setStandardTerms, () => setStandardTerms(null));
+  }, [docId]);
 
   // The summary sits at the top of the scrolling document, so bring it into view when it appears.
   useEffect(() => {
@@ -61,32 +88,55 @@ export default function DocumentBuilder({ documents }: { documents: DocumentSpec
   // The page title is the default file name when saving the PDF.
   useEffect(() => {
     document.title = doc ? `${doc.name} - ${TITLE}` : TITLE;
+    return () => {
+      document.title = TITLE;
+    };
   }, [doc]);
 
-  function startDocument(spec: DocumentSpec) {
-    const k = documentKind(spec);
-    const chosen: ChatMessage[] = [...messages, { role: "user", content: spec.name }];
-    // The interview starts at the greeting: the AI never sees how the document was chosen.
-    setStart(chosen.length);
-    setMessages([...chosen, { role: "assistant", content: k.greeting }]);
-    setDoc(spec);
-    setValues(k.empty);
-    setRecommendation(null);
-    setError("");
-    getStandardTerms(spec.id).then(
-      (text) => setTerms({ id: spec.id, text }),
-      () => setTerms({ id: spec.id, text: null }),
+  // A failed save is retried by the next one, which carries the full state anyway.
+  function save(id: number, state: DraftState) {
+    updateDraft(id, state).then(
+      (summary) => {
+        onSaved(summary);
+        setSaveFailed(false);
+      },
+      () => setSaveFailed(true),
     );
   }
 
-  function changeDocument() {
-    if (!window.confirm("Change document? Your answers so far will be cleared.")) return;
-    generation.current += 1;
-    setMessages([{ role: "assistant", content: OPENING }]);
-    setDoc(null);
-    setValues(null);
-    setConfirmed(false);
+  // The draft is created before the interview opens, so every answer has a draft to be saved to.
+  async function startDocument(spec: DocumentSpec) {
+    const k = documentKind(spec);
+    const chosen: ChatMessage[] = [...messages, { role: "user", content: spec.name }, { role: "assistant", content: k.greeting }];
+    // The interview starts at the greeting: the AI never sees how the document was chosen.
+    const interviewStart = chosen.length - 1;
+    const sentIn = generation.current;
+    setPending(true);
     setError("");
+    try {
+      const summary = await createDraft(spec.id, chosen, interviewStart, k.empty);
+      onSaved(summary);
+      if (sentIn !== generation.current) return;
+      onCreated(summary.id);
+      setDraftId(summary.id);
+      setStart(interviewStart);
+      setMessages(chosen);
+      setDoc(spec);
+      setValues(k.empty);
+      setRecommendation(null);
+    } catch {
+      setError("Could not start this agreement. Try again.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  function confirmDetails() {
+    // Render first: the download button is disabled until then, and it cannot take focus.
+    flushSync(() => setConfirmed(true));
+    // Confirming removes the summary panel and its focused button, so keep keyboard focus on the next step.
+    downloadRef.current?.focus();
+    if (draftId !== null && values) save(draftId, { messages, start, fields: values, confirmed: true });
   }
 
   // The user's message joins the history only once the assistant has answered,
@@ -97,13 +147,16 @@ export default function DocumentBuilder({ documents }: { documents: DocumentSpec
     setPending(true);
     setError("");
     try {
-      if (doc && values) {
+      if (doc && values && draftId !== null) {
         const turn = await sendChat(doc.id, next.slice(start), values);
         if (sentIn !== generation.current) return true;
-        setMessages([...next, { role: "assistant", content: turn.reply }]);
-        setValues(turn.fields);
+        const answered: ChatMessage[] = [...next, { role: "assistant", content: turn.reply }];
         // Both come from the same JSON shape, so equal values serialize the same way.
-        if (JSON.stringify(turn.fields) !== JSON.stringify(values)) setConfirmed(false);
+        const stillConfirmed = confirmed && JSON.stringify(turn.fields) === JSON.stringify(values);
+        setMessages(answered);
+        setValues(turn.fields);
+        setConfirmed(stillConfirmed);
+        save(draftId, { messages: answered, start, fields: turn.fields, confirmed: stillConfirmed });
       } else {
         const turn = await chooseDocument(next);
         if (sentIn !== generation.current) return true;
@@ -124,16 +177,17 @@ export default function DocumentBuilder({ documents }: { documents: DocumentSpec
     // window height, so they scroll inside instead of growing with their content.
     <div className="grid flex-1 gap-6 lg:min-h-0 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:grid-rows-1 print:block">
       <aside className="flex flex-col gap-4 lg:min-h-0 print:hidden">
-        <p role="note" className="rounded-md border-l-4 border-teal bg-teal/10 p-3 text-sm text-slate-700">
-          This draft is a starting point for review by a lawyer. It is not legal advice.
-        </p>
+        {saveFailed && (
+          <p role="alert" className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            Could not save your latest changes. They will be saved again with your next message.
+          </p>
+        )}
         <Chat
           messages={messages}
           pending={pending}
           error={error}
           onSend={handleSend}
           documentName={doc?.name}
-          onChangeDocument={doc ? changeDocument : undefined}
         >
           {!doc && (
             <DocumentChoices
@@ -146,7 +200,7 @@ export default function DocumentBuilder({ documents }: { documents: DocumentSpec
       </aside>
 
       <section aria-label="Document preview" className="flex flex-col gap-4 lg:min-h-0">
-        <div className="flex items-center justify-between gap-4 print:hidden">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 print:hidden">
           <h2 className="text-lg font-semibold text-navy">Preview</h2>
           <div className="flex items-center gap-3">
             {!ready && <p className="text-xs text-slate-500">{hint}</p>}
@@ -155,15 +209,18 @@ export default function DocumentBuilder({ documents }: { documents: DocumentSpec
               type="button"
               onClick={() => window.print()}
               disabled={!ready}
-              className="rounded-md bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-teal disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-navy"
+              className="shrink-0 whitespace-nowrap rounded-md bg-navy px-4 py-2 text-sm font-medium text-white hover:bg-teal disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-navy"
             >
               Download PDF
             </button>
           </div>
         </div>
         <div ref={documentRef} className="space-y-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto print:overflow-visible">
-          {showSummary && <Summary rows={kind.summarize(values)} onConfirm={() => setConfirmed(true)} />}
-          {kind && values && standardTerms !== null ? (
+          {showSummary && <Summary rows={kind.summarize(values)} onConfirm={confirmDetails} />}
+          <p className="hidden text-xs italic text-slate-600 print:block">
+            Draft prepared with Pre-Legal. This draft is a starting point for review by a lawyer. It is not legal advice.
+          </p>
+          {kind && values && typeof standardTerms === "string" ? (
             <article className="nda-doc rounded-lg border border-slate-200 bg-white p-10 shadow-sm print:border-0 print:p-0 print:shadow-none">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{kind.build(values, standardTerms)}</ReactMarkdown>
             </article>
@@ -171,14 +228,11 @@ export default function DocumentBuilder({ documents }: { documents: DocumentSpec
             <p className="rounded-lg border border-dashed border-slate-300 p-10 text-center text-sm text-slate-500">
               {!doc
                 ? "Your draft will appear here once you choose an agreement."
-                : loaded
-                  ? "Could not load this agreement's template. Change document and choose it again."
+                : standardTerms === null
+                  ? "Could not load this agreement's template. Reload the page and open it again from the sidebar."
                   : "Loading the agreement..."}
             </p>
           )}
-          <p className="hidden text-xs italic text-slate-600 print:block">
-            Draft prepared with Pre-Legal. This draft is a starting point for review by a lawyer. It is not legal advice.
-          </p>
         </div>
       </section>
     </div>
