@@ -1,33 +1,34 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getMutualNdaTerms } from "@/lib/api";
+import { getDocuments } from "@/lib/api";
+import type { DocumentSpec } from "@/lib/documents";
 import { setStoredUser, useStoredUser } from "@/lib/session";
+import DocumentBuilder from "./DocumentBuilder";
 import LoginForm from "./LoginForm";
-import NdaBuilder from "./NdaBuilder";
 
-// Loads the standard terms from the backend, then shows the builder.
-function NdaLoader() {
-  const [terms, setTerms] = useState<string | null>(null);
+// Loads the list of agreements from the backend, then shows the builder.
+function DocumentLoader() {
+  const [documents, setDocuments] = useState<DocumentSpec[] | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
-    getMutualNdaTerms().then(setTerms, () => setLoadFailed(true));
+    getDocuments().then(setDocuments, () => setLoadFailed(true));
   }, []);
 
   if (loadFailed) {
     return (
       <p role="alert" className="text-sm text-red-700">
-        Could not load the NDA template. Check that the backend is running, then reload the page.
+        Could not load the agreements. Check that the backend is running, then reload the page.
       </p>
     );
   }
-  if (terms === null) return <p className="text-sm text-slate-600">Loading the NDA template...</p>;
-  return <NdaBuilder standardTerms={terms} />;
+  if (documents === null) return <p className="text-sm text-slate-600">Loading the agreements...</p>;
+  return <DocumentBuilder documents={documents} />;
 }
 
-// Shows the sign-in screen, or the NDA builder once someone is signed in.
-export default function NdaApp() {
+// Shows the sign-in screen, or the document builder once someone is signed in.
+export default function App() {
   const user = useStoredUser();
 
   if (user === undefined) return null;
@@ -37,9 +38,9 @@ export default function NdaApp() {
     <>
       <header className="flex items-start justify-between gap-4 print:hidden">
         <div>
-          <h1 className="text-2xl font-semibold text-navy">Mutual NDA Creator</h1>
+          <h1 className="text-2xl font-semibold text-navy">Pre-Legal</h1>
           <p className="text-sm text-slate-600">
-            Chat with the assistant and the agreement fills in as you answer. Download it as a PDF when you are done.
+            Tell the assistant what you need and the agreement fills in as you answer. Download it as a PDF when you are done.
           </p>
         </div>
         <p className="shrink-0 text-sm text-slate-600">
@@ -53,7 +54,7 @@ export default function NdaApp() {
           </button>
         </p>
       </header>
-      <NdaLoader />
+      <DocumentLoader />
     </>
   );
 }

@@ -1,6 +1,6 @@
 // Calls to the FastAPI backend. In production the backend also serves this app,
 // so paths are relative; `npm run dev` points them at the backend on port 8000.
-import type { NdaValues } from "./nda";
+import type { DocValues, DocumentSpec } from "./documents";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
@@ -12,21 +12,30 @@ async function request(path: string, init?: RequestInit): Promise<Response> {
   return res;
 }
 
-export async function getMutualNdaTerms(): Promise<string> {
-  return (await request("/api/templates/mutual-nda")).text();
-}
-
-export async function login(name: string, email: string): Promise<User> {
-  const res = await request("/api/login", {
+async function post<T>(path: string, body: object): Promise<T> {
+  const res = await request(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, email }),
+    body: JSON.stringify(body),
   });
   return res.json();
 }
 
+export async function getDocuments(): Promise<DocumentSpec[]> {
+  return (await request("/api/documents")).json();
+}
+
+export async function getStandardTerms(docId: string): Promise<string> {
+  return (await request(`/api/templates/${docId}`)).text();
+}
+
+export function login(name: string, email: string): Promise<User> {
+  return post("/api/login", { name, email });
+}
+
 export type ChatMessage = { role: "user" | "assistant"; content: string };
-export type ChatTurn = { reply: string; fields: NdaValues };
+export type ChatTurn = { reply: string; fields: DocValues };
+export type ChooseTurn = { reply: string; recommendation: string | null };
 
 // The user's local date as YYYY-MM-DD, so "next Monday" follows their calendar.
 function localToday(): string {
@@ -34,11 +43,12 @@ function localToday(): string {
   return [d.getFullYear(), d.getMonth() + 1, d.getDate()].map((n) => String(n).padStart(2, "0")).join("-");
 }
 
-export async function sendChat(messages: ChatMessage[], fields: NdaValues): Promise<ChatTurn> {
-  const res = await request("/api/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messages, fields, today: localToday() }),
-  });
-  return res.json();
+// One turn of choosing a document: the reply, plus the document the AI recommends (if any).
+export function chooseDocument(messages: ChatMessage[]): Promise<ChooseTurn> {
+  return post("/api/choose", { messages });
+}
+
+// One turn of the interview for the chosen document.
+export function sendChat(document: string, messages: ChatMessage[], fields: DocValues): Promise<ChatTurn> {
+  return post("/api/chat", { document, messages, fields, today: localToday() });
 }

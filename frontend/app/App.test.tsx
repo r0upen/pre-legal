@@ -2,15 +2,18 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { setStoredUser } from "@/lib/session";
-import NdaApp from "./NdaApp";
+import App from "./App";
+import { OPENING } from "./DocumentBuilder";
 
 const ada = { id: 1, name: "Ada Lovelace", email: "ada@example.com" };
 
-// Stands in for the backend: answers the two /api routes the app calls.
-function mockBackend({ loginOk = true, termsOk = true } = {}) {
+const documents = [{ id: "mutual-nda", name: "Mutual Non-Disclosure Agreement", description: "Share secrets.", version: "1.0", files: [] }];
+
+// Stands in for the backend: answers the two /api routes the app calls on its own.
+function mockBackend({ loginOk = true, documentsOk = true } = {}) {
   const fetchMock = vi.fn(async (url: string) => {
     if (url === "/api/login") return loginOk ? Response.json(ada) : new Response(null, { status: 422 });
-    return termsOk ? new Response("# Standard Terms") : new Response(null, { status: 500 });
+    return documentsOk ? Response.json(documents) : new Response(null, { status: 500 });
   });
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
@@ -29,10 +32,10 @@ afterEach(() => {
   sessionStorage.clear();
 });
 
-describe("NdaApp", () => {
+describe("App", () => {
   it("shows the sign-in screen with the disclaimer when no one is signed in", () => {
     const fetchMock = mockBackend();
-    render(<NdaApp />);
+    render(<App />);
     expect(screen.getByRole("heading", { name: "Sign in to Pre-Legal" })).toBeInTheDocument();
     expect(screen.getByRole("note")).toHaveTextContent("not legal advice");
     expect(screen.queryByRole("region", { name: "NDA preview" })).not.toBeInTheDocument();
@@ -42,16 +45,17 @@ describe("NdaApp", () => {
   it("treats a malformed stored user as signed out", () => {
     mockBackend();
     sessionStorage.setItem("pre-legal.user", "not json");
-    render(<NdaApp />);
+    render(<App />);
     expect(screen.getByRole("heading", { name: "Sign in to Pre-Legal" })).toBeInTheDocument();
   });
 
-  it("signs in and shows the NDA builder with the terms from the backend", async () => {
+  it("signs in and shows the builder with the agreements from the backend", async () => {
     const fetchMock = mockBackend();
-    render(<NdaApp />);
+    render(<App />);
     await signIn();
 
-    expect(await screen.findByRole("heading", { name: "Standard Terms" })).toBeInTheDocument();
+    expect(await screen.findByText(OPENING)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Mutual Non-Disclosure Agreement" })).toBeInTheDocument();
     expect(screen.getByText("Signed in as")).toHaveTextContent("Ada Lovelace");
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/login",
@@ -63,17 +67,17 @@ describe("NdaApp", () => {
   it("skips sign-in when the user is already stored for this tab", async () => {
     const fetchMock = mockBackend();
     setStoredUser(ada);
-    render(<NdaApp />);
-    expect(await screen.findByRole("heading", { name: "Standard Terms" })).toBeInTheDocument();
-    expect(screen.getByText(/Chat with the assistant and the agreement fills in as you answer/)).toBeInTheDocument();
-    // Only the template is loaded; the chat waits for the user's first message.
-    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(["/api/templates/mutual-nda"]);
+    render(<App />);
+    expect(await screen.findByText(OPENING)).toBeInTheDocument();
+    expect(screen.getByText(/Tell the assistant what you need/)).toBeInTheDocument();
+    // Only the list of agreements is loaded; the chat waits for the user.
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(["/api/documents"]);
   });
 
   it("signs out back to the sign-in screen", async () => {
     mockBackend();
     setStoredUser(ada);
-    render(<NdaApp />);
+    render(<App />);
     await userEvent.setup().click(screen.getByRole("button", { name: "Sign out" }));
 
     expect(screen.getByRole("heading", { name: "Sign in to Pre-Legal" })).toBeInTheDocument();
@@ -82,17 +86,17 @@ describe("NdaApp", () => {
 
   it("shows an error when sign-in fails", async () => {
     mockBackend({ loginOk: false });
-    render(<NdaApp />);
+    render(<App />);
     await signIn();
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Sign-in failed");
     expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled();
   });
 
-  it("shows an error when the template cannot be loaded", async () => {
-    mockBackend({ termsOk: false });
+  it("shows an error when the agreements cannot be loaded", async () => {
+    mockBackend({ documentsOk: false });
     setStoredUser(ada);
-    render(<NdaApp />);
-    expect(await screen.findByRole("alert")).toHaveTextContent("Could not load the NDA template");
+    render(<App />);
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not load the agreements");
   });
 });

@@ -69,6 +69,20 @@ are set up. Update this section after every ticket.
   grows to its content) and the grid uses `grid-rows-1` plus `min-h-0`, so
   the chat and the document each scroll inside; print styles undo the
   height limit. jsdom has no layout, so check layout in a real browser.
+- PL-5: all 11 agreements. The chat opens on a document choice (suggestion
+  buttons, See all, or a description sent to `POST /api/choose`, whose
+  `recommendation` becomes a Start button; only the click starts it).
+  Every catalog entry except the Mutual NDA has a `coverPage` spec: parties
+  plus ordered fields (`key`, `label`, `ask`, optional `type: date` and
+  `default`). Fields with a `default` are routine terms: pre-filled, not
+  asked, marked Default in the summary while unchanged. One generic engine
+  (`documents.py`, `prompts.py`, `lib/documents.ts`) builds the model,
+  prompt, cover page and summary from the spec; the NDA keeps its own,
+  plugged into the same `documentKind` interface. The model never sees
+  routine terms in `fields`, only a separate `changedTerms` part: when it
+  had to echo every field it re-copied the long default wording and
+  altered it. `/api/chat` takes a `document` id and checks `fields`
+  against that document's model.
 
 ## Development process
 - Read the ticket with the Atlassian tools before starting.

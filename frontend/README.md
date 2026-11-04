@@ -1,13 +1,16 @@
 # Pre-Legal frontend
 
-Next.js app for drafting a Mutual NDA. After a placeholder sign-in, the user
-fills in a form, sees a live preview and downloads the agreement as a PDF
-through the browser print dialog.
+Next.js app for drafting the Common Paper agreements by chatting with an AI.
+After a placeholder sign-in, the user chooses an agreement, answers the
+assistant's questions while a live preview fills in, confirms a summary and
+downloads the agreement as a PDF through the browser print dialog.
 
 The app is a static export (`output: "export"`): `npm run build` writes plain
-HTML and JS to `out/`, which the FastAPI backend serves. The standard terms are
-fetched from the backend (`/api/templates/mutual-nda`). The cover page is
-generated from the form values in `lib/nda.ts`.
+HTML and JS to `out/`, which the FastAPI backend serves. The list of agreements
+(`/api/documents`) and their standard terms (`/api/templates/{id}`) come from
+the backend. Cover pages are generated from the collected values: the Mutual
+NDA's in `lib/nda.ts`, the others in `lib/documents.ts` from their spec in
+`templates/catalog.json`.
 
 ## Commands
 
