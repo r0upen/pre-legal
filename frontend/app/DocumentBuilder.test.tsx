@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { Draft } from "@/lib/api";
 import { documentKind, type DocumentSpec } from "@/lib/documents";
 import { emptyValues, type NdaValues } from "@/lib/nda";
 import DocumentBuilder, { OPENING } from "./DocumentBuilder";
@@ -27,12 +28,15 @@ const complete: NdaValues = {
   party2: { name: "Alan Turing", title: "CTO", company: "Globex LLC", noticeAddress: "alan@globex.test" },
 };
 
-// Stands in for the backend: templates come from templates/, and each /api/chat or /api/choose
-// call returns the next turn, or fails for null.
+const summary = { id: 7, document: "mutual-nda", parties: [], updatedAt: "2026-11-04T12:00:00.000+00:00" };
+
+// Stands in for the backend: templates come from templates/, saving a draft succeeds, and each
+// /api/chat or /api/choose call returns the next turn, or fails for null.
 function mockBackend(...turns: (object | null)[]) {
   const fetchMock = vi.fn(async (url: string) => {
     const id = url.match(/^\/api\/templates\/(.+)$/)?.[1];
     if (id) return new Response(readFileSync(path.join(TEMPLATES, spec(id).files.at(-1)!), "utf-8"));
+    if (url.startsWith("/api/drafts")) return Response.json(summary);
     const turn = turns.shift();
     return turn ? Response.json(turn) : new Response(null, { status: 502 });
   });
@@ -40,16 +44,24 @@ function mockBackend(...turns: (object | null)[]) {
   return fetchMock;
 }
 
-// The n-th call to the chat backend (template downloads are skipped).
+// The n-th call to the chat backend (template downloads and saves are skipped).
 function sentBody(fetchMock: ReturnType<typeof mockBackend>, n: number, url = "/api/chat") {
-  const calls = fetchMock.mock.calls.filter(([u]) => !u.startsWith("/api/templates/")) as unknown as [string, RequestInit][];
+  const calls = fetchMock.mock.calls.filter(([u]) => /^\/api\/(chat|choose)$/.test(u)) as unknown as [string, RequestInit][];
   expect(calls[n][0]).toBe(url);
   return JSON.parse(calls[n][1].body as string);
 }
 
-function setup() {
+// The bodies of the saves sent to the given URL.
+function saves(fetchMock: ReturnType<typeof mockBackend>, url: string, method = "PUT") {
+  const calls = fetchMock.mock.calls as unknown as [string, RequestInit | undefined][];
+  return calls.filter(([u, init]) => u === url && init?.method === method).map(([, init]) => JSON.parse(init!.body as string));
+}
+
+function setup(saved: Draft | null = null) {
   const user = userEvent.setup();
-  render(<DocumentBuilder documents={documents} />);
+  const onCreated = vi.fn();
+  const onSaved = vi.fn();
+  const view = render(<DocumentBuilder documents={documents} saved={saved} onCreated={onCreated} onSaved={onSaved} />);
   const preview = within(screen.getByRole("region", { name: "Document preview" }));
   const send = async (text: string) => {
     await user.type(screen.getByLabelText("Your message"), text);
@@ -60,7 +72,7 @@ function setup() {
     await user.click(screen.getByRole("button", { name }));
     await preview.findByRole("heading", { level: 1, name: "Standard Terms" });
   };
-  return { user, preview, send, start };
+  return { user, preview, send, start, onCreated, onSaved, view };
 }
 
 afterEach(() => {
@@ -73,14 +85,12 @@ describe("choosing a document", () => {
     const fetchMock = mockBackend();
     const { preview } = setup();
     expect(screen.getByRole("log")).toHaveTextContent(OPENING);
-    expect(screen.getByRole("note")).toHaveTextContent("not legal advice");
     for (const name of ["Mutual Non-Disclosure Agreement", "Cloud Service Agreement", "Professional Services Agreement"]) {
       expect(screen.getByRole("button", { name })).toBeInTheDocument();
     }
     expect(screen.getByRole("button", { name: "See all" })).toHaveAttribute("aria-expanded", "false");
     expect(preview.getByText(/Your draft will appear here/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Download PDF" })).toBeDisabled();
-    expect(screen.queryByRole("button", { name: "Change document" })).not.toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -98,11 +108,10 @@ describe("choosing a document", () => {
     expect(preview.getByRole("heading", { level: 1, name: "Mutual Non-Disclosure Agreement" })).toBeInTheDocument();
     expect(preview.getByText("[Party 1 Company]")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "See all" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Change document" })).toBeInTheDocument();
     expect(document.title).toBe("Mutual Non-Disclosure Agreement - Pre-Legal");
     // The clicked button is gone, so the cursor moves to the message box for the first answer.
     expect(screen.getByLabelText("Your message")).toHaveFocus();
-    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(["/api/templates/mutual-nda"]);
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(["/api/drafts", "/api/templates/mutual-nda"]);
   });
 
   it("lists every agreement under See all", async () => {
@@ -156,51 +165,6 @@ describe("choosing a document", () => {
     await screen.findByText("Pre-Legal cannot draft a lease yet.");
     expect(screen.queryByRole("button", { name: /^Start/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "See all" })).toBeInTheDocument();
-  });
-
-  it("changes document only after the user confirms, clearing the answers", async () => {
-    mockBackend({ reply: "Who signs for Acme?", fields: { ...emptyValues, party1: { ...emptyValues.party1, company: "Acme" } } });
-    const confirm = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
-    const { user, preview, send, start } = setup();
-    await start("Mutual Non-Disclosure Agreement");
-    await send("Acme");
-    await screen.findByText("Who signs for Acme?");
-
-    await user.click(screen.getByRole("button", { name: "Change document" }));
-    expect(preview.getByRole("cell", { name: "Acme" })).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Change document" }));
-    expect(confirm).toHaveBeenCalledTimes(2);
-    expect(within(screen.getByRole("log")).getAllByRole("listitem")[0]).toHaveTextContent(OPENING);
-    expect(screen.getByRole("log")).not.toHaveTextContent("Who signs for Acme?");
-    expect(preview.getByText(/Your draft will appear here/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "See all" })).toBeInTheDocument();
-    expect(document.title).toBe("Pre-Legal");
-    expect(screen.getByLabelText("Your message")).toHaveFocus();
-  });
-
-  it("ignores a reply that arrives after the user changed document", async () => {
-    let answer: (res: Response) => void = () => {};
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (url: string) =>
-        url.startsWith("/api/templates/")
-          ? new Response("# Standard Terms")
-          : new Promise<Response>((resolve) => (answer = resolve)),
-      ),
-    );
-    vi.spyOn(window, "confirm").mockReturnValue(true);
-    const { user, preview, send, start } = setup();
-    await start("Mutual Non-Disclosure Agreement");
-    await send("Acme Inc.");
-    await user.click(screen.getByRole("button", { name: "Change document" }));
-
-    answer(Response.json({ reply: "Who signs for Acme Inc.?", fields: emptyValues }));
-    expect(await screen.findByRole("button", { name: "See all" })).toBeInTheDocument();
-    expect(within(screen.getByRole("log")).getAllByRole("listitem").map((li) => li.textContent)[0]).toBe(OPENING);
-    expect(screen.getByRole("log")).not.toHaveTextContent("Who signs for Acme Inc.?");
-    expect(screen.getByRole("log")).not.toHaveTextContent("Acme Inc.");
-    expect(preview.getByText(/Your draft will appear here/)).toBeInTheDocument();
   });
 
   it("keeps the download locked when the agreement's template cannot be loaded", async () => {
@@ -433,8 +397,189 @@ describe("the chat box", () => {
     expect(screen.getByLabelText("Your message")).toHaveAttribute("maxLength", "4000");
   });
 
-  it("includes the disclaimer in the printed PDF", () => {
-    setup();
-    expect(screen.getByText(/Draft prepared with Pre-Legal/)).toHaveClass("print:block");
+});
+
+describe("the printed PDF", () => {
+  it("carries the disclaimer above the agreement", async () => {
+    mockBackend();
+    const { preview, start } = setup();
+    await start("Mutual Non-Disclosure Agreement");
+    const notice = screen.getByText(/Draft prepared with Pre-Legal/);
+    expect(notice).toHaveClass("print:block");
+    expect(notice).toHaveTextContent("not legal advice");
+    const title = preview.getByRole("heading", { level: 1, name: "Mutual Non-Disclosure Agreement" });
+    expect(notice.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});
+
+describe("saving", () => {
+  const started = () => [
+    { role: "assistant", content: OPENING },
+    { role: "user", content: "Mutual Non-Disclosure Agreement" },
+    { role: "assistant", content: nda.greeting },
+  ];
+
+  it("creates the draft when a document starts, with the chat so far", async () => {
+    const fetchMock = mockBackend();
+    const { start, onCreated, onSaved } = setup();
+    await start("Mutual Non-Disclosure Agreement");
+    expect(saves(fetchMock, "/api/drafts", "POST")).toEqual([
+      { document: "mutual-nda", messages: started(), start: 2, fields: emptyValues },
+    ]);
+    expect(onCreated).toHaveBeenCalledWith(7);
+    expect(onSaved).toHaveBeenCalledWith(summary);
+  });
+
+  it("does not save while the user is still choosing a document", async () => {
+    const fetchMock = mockBackend({ reply: "Which party are you?", recommendation: null });
+    const { send } = setup();
+    await send("I need something");
+    await screen.findByText("Which party are you?");
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(["/api/choose"]);
+  });
+
+  it("stays on the choices and shows an error when the draft cannot be created", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 500 })));
+    const { user, onCreated } = setup();
+    await user.click(screen.getByRole("button", { name: "Mutual Non-Disclosure Agreement" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not start this agreement");
+    expect(screen.getByRole("button", { name: "See all" })).toBeInTheDocument();
+    expect(onCreated).not.toHaveBeenCalled();
+  });
+
+  it("saves after every answer and after Confirm details", async () => {
+    const fetchMock = mockBackend({ reply: "Please check the details.", fields: complete });
+    const { user, send, start, onSaved } = setup();
+    await start("Mutual Non-Disclosure Agreement");
+    await send("All done");
+    await screen.findByText("Please check the details.");
+
+    const answered = [...started(), { role: "user", content: "All done" }, { role: "assistant", content: "Please check the details." }];
+    await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(2));
+    expect(saves(fetchMock, "/api/drafts/7")).toEqual([{ messages: answered, start: 2, fields: complete, confirmed: false }]);
+
+    await user.click(screen.getByRole("button", { name: "Confirm details" }));
+    await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(3));
+    expect(saves(fetchMock, "/api/drafts/7")[1]).toEqual({ messages: answered, start: 2, fields: complete, confirmed: true });
+  });
+
+  it("saves a cleared confirmation when an answer changes a detail", async () => {
+    const changed = { ...complete, mndaTermYears: 2 };
+    const fetchMock = mockBackend({ reply: "Check it.", fields: complete }, { reply: "Updated.", fields: changed });
+    const { user, send, start, onSaved } = setup();
+    await start("Mutual Non-Disclosure Agreement");
+    await send("Done");
+    await screen.findByText("Check it.");
+    await user.click(screen.getByRole("button", { name: "Confirm details" }));
+    await send("Make it 2 years");
+    await screen.findByText("Updated.");
+    await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(4));
+    expect(saves(fetchMock, "/api/drafts/7").at(-1)).toMatchObject({ fields: changed, confirmed: false });
+  });
+
+  it("warns when a save fails, keeps the reply, and clears the warning after the next save", async () => {
+    let saveOk = false;
+    const answers = [
+      { reply: "First reply.", fields: emptyValues },
+      { reply: "Second reply.", fields: emptyValues },
+    ];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (url.startsWith("/api/templates/")) return new Response("# Standard Terms");
+        if (url === "/api/drafts") return Response.json(summary);
+        if (init?.method === "PUT") return saveOk ? Response.json(summary) : new Response(null, { status: 500 });
+        return Response.json(answers.shift());
+      }),
+    );
+    const { send, start } = setup();
+    await start("Mutual Non-Disclosure Agreement");
+    await send("One");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not save");
+    expect(screen.getByText("First reply.")).toBeInTheDocument();
+
+    saveOk = true;
+    await send("Two");
+    await screen.findByText("Second reply.");
+    await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
+  });
+
+  it("drops a reply that arrives after the user moved to another document", async () => {
+    let answer: (res: Response) => void = () => {};
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.startsWith("/api/templates/")) return new Response("# Standard Terms");
+      if (url.startsWith("/api/drafts")) return Response.json(summary);
+      return new Promise<Response>((resolve) => (answer = resolve));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const { send, start, view } = setup();
+    await start("Mutual Non-Disclosure Agreement");
+    await send("Acme Inc.");
+    view.unmount();
+
+    answer(Response.json({ reply: "Too late.", fields: emptyValues }));
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(fetchMock.mock.calls.filter(([url]) => url === "/api/drafts/7")).toEqual([]);
+  });
+});
+
+describe("reopening a draft", () => {
+  const saved = (change: Partial<Draft> = {}): Draft => ({
+    id: 7,
+    document: "mutual-nda",
+    messages: [
+      { role: "assistant", content: OPENING },
+      { role: "user", content: "Mutual Non-Disclosure Agreement" },
+      { role: "assistant", content: nda.greeting },
+      { role: "user", content: "Acme Inc." },
+      { role: "assistant", content: "Who signs for Acme Inc.?" },
+    ],
+    start: 2,
+    fields: { ...emptyValues, party1: { ...emptyValues.party1, company: "Acme Inc." } },
+    confirmed: false,
+    updatedAt: "2026-11-04T12:00:00.000+00:00",
+    ...change,
+  });
+
+  it("shows the conversation and the document, and creates nothing", async () => {
+    const fetchMock = mockBackend();
+    const { preview, onCreated } = setup(saved());
+    expect(screen.getByRole("log")).toHaveTextContent("Who signs for Acme Inc.?");
+    expect(await preview.findByRole("cell", { name: "Acme Inc." })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "See all" })).not.toBeInTheDocument();
+    expect(document.title).toBe("Mutual Non-Disclosure Agreement - Pre-Legal");
+    expect(saves(fetchMock, "/api/drafts", "POST")).toEqual([]);
+    expect(onCreated).not.toHaveBeenCalled();
+  });
+
+  it("continues the interview where it stopped, saving to the same draft", async () => {
+    const draft = saved();
+    const fetchMock = mockBackend({ reply: "And the title?", fields: draft.fields });
+    const { send, onSaved } = setup(draft);
+    await send("Ada Lovelace");
+    await screen.findByText("And the title?");
+
+    // The AI sees the interview only, from the greeting on, as it did before reopening.
+    expect(sentBody(fetchMock, 0).messages.slice(0, 3)).toEqual(draft.messages.slice(2));
+    expect(sentBody(fetchMock, 0).fields).toEqual(draft.fields);
+    await waitFor(() => expect(onSaved).toHaveBeenCalledOnce());
+    expect(saves(fetchMock, "/api/drafts/7")).toHaveLength(1);
+  });
+
+  it("opens a confirmed draft ready to download, without taking focus from the message box", async () => {
+    mockBackend();
+    vi.stubGlobal("matchMedia", (query: string) => ({ matches: query === "(pointer: fine)" }));
+    const { preview } = setup(saved({ fields: complete, confirmed: true }));
+    await preview.findByRole("heading", { level: 1, name: "Standard Terms" });
+    expect(screen.getByRole("button", { name: "Download PDF" })).toBeEnabled();
+    expect(screen.queryByRole("region", { name: "Check the details" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Your message")).toHaveFocus();
+  });
+
+  it("shows the summary again for a complete draft that was not confirmed", async () => {
+    mockBackend();
+    setup(saved({ fields: complete }));
+    expect(screen.getByRole("region", { name: "Check the details" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Download PDF" })).toBeDisabled();
   });
 });

@@ -1,16 +1,22 @@
 # How the chat works
 
 This page explains, in plain English, what happens from the moment someone
-opens Pre-Legal to the moment they download an agreement as a PDF.
+opens Pre-Legal to the moment they download an agreement as a PDF and come
+back to it later.
 
 ## The pieces
 
-- **The browser app** shows the chat on the left and a live preview of the
-  agreement on the right. On a wide screen the page fits the window and
-  each side scrolls on its own, so both stay visible throughout; on a narrow
+- **The browser app** shows a sidebar of the user's documents, the chat, and
+  a live preview of the agreement. On a wide screen the page fits the window
+  and each part scrolls on its own, so all stay visible throughout. On
+  smaller screens the sidebar slides in from a menu button, and on a narrow
   screen the chat comes first and the agreement below it.
-- **The server** runs in the same Docker container. It hands out the list
-  of agreements and their standard terms, and passes chat messages to the AI.
+- **The server** runs in the same Docker container. It handles accounts,
+  stores drafts, hands out the list of agreements and their standard terms,
+  and passes chat messages to the AI.
+- **The database** holds accounts, login sessions and saved drafts. It is
+  wiped every time the app restarts, which is fine for now: everyone then
+  has to sign up again and their drafts are gone.
 - **The AI** is the gpt-oss-120b model, reached through OpenRouter and run
   on Cerebras for speed. It helps choose an agreement and conducts the
   interview.
@@ -23,12 +29,35 @@ opens Pre-Legal to the moment they download an agreement as a PDF.
   page needs, in the order the AI asks about them. The Mutual NDA keeps the
   official cover page it came with.
 
-## 1. Signing in and choosing an agreement
+A notice that drafts are a starting point for review by a lawyer, not legal
+advice, stays at the bottom of every screen.
 
-The user signs in with a name and email (a placeholder: there is no
-password). The browser loads the list of agreements, and the chat opens by
-asking what the user needs, with the cursor already in the message box.
-Below that message are buttons for three common agreements (Mutual NDA,
+## 1. Accounts
+
+A new user signs up with a name, an email and a password of at least 8
+characters. A returning user logs in with their email and password. If
+either is wrong the message does not say which, so nobody can use the form
+to find out who has an account.
+
+The server never stores the password itself, only a scrambled version of it
+(a salted hash) that can check a password but cannot be turned back into one.
+
+After signing up or logging in, the browser holds a session cookie: a long
+random code that identifies the user on each request. Page scripts cannot
+read it and other websites' requests do not carry it. It lasts 7 days, and
+the user stays logged in across tabs and reloads until then. **Log out** ends
+the session on the server, so the old code stops working. If the app has
+restarted, the session no longer exists and the next action returns the user
+to the log in screen.
+
+Only logged-in users can use the AI, so anonymous visitors cannot spend the
+AI credit.
+
+## 2. Choosing an agreement
+
+The browser loads the list of agreements and the user's saved documents, and
+the chat opens by asking what the user needs, with the cursor already in the
+message box. Below that message are buttons for three common agreements (Mutual NDA,
 Cloud Service Agreement, Professional Services Agreement) and a **See all**
 button that lists every agreement with a one-line description.
 
@@ -47,14 +76,13 @@ the Data Processing Agreement, the Business Associate Agreement and the AI
 Addendum. They are drafted on their own, and their interview asks which
 main agreement they belong to.
 
-## 2. Starting the interview
+## 3. Starting the interview
 
-Once an agreement is chosen, the chat posts a short greeting that asks the
-first question, the preview shows the empty agreement with bracketed
-placeholders such as "[Provider Company]", and the chat header shows the
-agreement's name with a **Change document** button. Changing document asks
-for confirmation, because it clears every answer, and returns to the
-opening choices.
+Once an agreement is chosen, the server creates a saved draft for it, the
+chat posts a short greeting that asks the first question, the preview shows
+the empty agreement with bracketed placeholders such as "[Provider Company]",
+and the chat header shows the agreement's name. To work on something else,
+the user clicks **New document**; the current draft stays in the sidebar.
 
 ## The chat box
 
@@ -69,7 +97,7 @@ twice. The cursor stays in the box throughout, whether the user pressed
 Enter, clicked the send button or clicked a button to choose an agreement,
 so they can type the next answer without clicking.
 
-## 3. Each message
+## 4. Each message
 
 When the user sends a message during the interview, the browser sends the
 server four things:
@@ -99,13 +127,14 @@ one already collected. The server then sends the reply and the updated
 details back to the browser, which shows the reply in the chat and fills in
 the preview straight away.
 
-The server keeps nothing between messages: the conversation lives only in
-the browser. Reloading the page starts a new conversation.
+Answering a message and saving the result are two separate steps: the AI's
+side of the server remembers nothing between messages. Once the reply is
+shown, the browser saves the draft (see "Saving and reopening").
 
 If the AI cannot be reached, the user sees an error and their message stays
 in the box so they can send it again.
 
-## 4. How the AI interviews
+## 5. How the AI interviews
 
 The AI asks only about the essentials: the parties, dates, money and what
 the agreement covers. For a Cloud Service Agreement, for example, that is
@@ -150,7 +179,7 @@ The Mutual NDA was built first and keeps its own, slightly different
 interview: it asks about every term, including how long the agreement and
 confidentiality last and any changes to the standard terms.
 
-## 5. Checking the details
+## 6. Checking the details
 
 Once every required detail is collected, a "Check the details" box appears
 above the preview, and the agreement side scrolls back to the top so the
@@ -167,11 +196,56 @@ The user either clicks **Confirm details** or tells the AI what to change.
 If anything changes after confirming, the box comes back and must be
 confirmed again.
 
-## 6. Downloading the PDF
+## 7. Downloading the PDF
 
 **Download PDF** is enabled only when every detail is collected and the
 user has confirmed the summary. Clicking it opens the browser's print
 dialog, where the user chooses "Save as PDF"; the suggested file name is the
-agreement's name. The printed copy contains the cover page, the standard
-terms and a note that the draft is a starting point for review by a lawyer,
-not legal advice.
+agreement's name. The printed copy starts with a note at the top of the first
+page that the draft is a starting point for review by a lawyer, not legal
+advice, followed by the cover page and the standard terms. The sidebar, the
+chat and the on-screen notice are left out.
+
+## 8. Saving and reopening
+
+Drafts save themselves; there is no Save button. A draft is created when an
+agreement starts, and saved again after every reply and every Confirm details
+click. What is saved is everything needed to pick up where the user left off:
+the whole conversation, the details collected and whether they were
+confirmed. The chat before an agreement is chosen is saved only once one
+starts, so simply browsing creates nothing.
+
+The sidebar lists the user's own drafts with the latest change first, each
+showing the agreement's name, the company names known so far and the date,
+such as "Acme Inc. and Globex LLC, Nov 4". Nobody can see or open another
+user's drafts, not even by guessing a draft's number.
+
+Clicking a draft reopens it with its conversation and document exactly as
+they were, and the interview carries on from there. A draft that was already
+confirmed can be downloaded straight away. **New document** starts a fresh
+chat. Reloading the page also starts a fresh chat, with every draft still in
+the sidebar.
+
+If a save fails, the user sees a warning and keeps working: every save carries
+the whole draft, so the next one catches up. If the user moves to another
+document while the AI is still replying, that message and its reply are
+dropped, so a late answer can never overwrite a newer copy of the draft. Saves
+run one at a time and reopening a draft waits for them, so it never loads a
+copy older than the one the user just saw.
+
+## Known limitations before real users
+
+These are deliberately not built yet and must be done before real people use
+Pre-Legal:
+
+- **Two tabs on one draft.** Each tab holds its own copy of a draft and every
+  save replaces the stored one, so with the same draft open in two tabs or on
+  two devices the last save wins and the other tab's newer answers are lost.
+  Saves need a version check and a message when there is a conflict.
+- **Secure cookie over HTTPS.** The session cookie does not yet require HTTPS,
+  because the app runs on plain `http://localhost`. Once it is deployed over
+  HTTPS the cookie must be marked Secure, or it could be sent unencrypted.
+- **Login rate limiting.** Nothing limits how many passwords someone can try,
+  so an attacker could keep guessing. Logins need a limit on repeated attempts.
+- **Password reset.** A user who forgets their password has no way back into
+  their account. This needs a reset flow, which also means sending email.

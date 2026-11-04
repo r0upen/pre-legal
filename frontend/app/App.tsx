@@ -1,60 +1,38 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getDocuments } from "@/lib/api";
-import type { DocumentSpec } from "@/lib/documents";
-import { setStoredUser, useStoredUser } from "@/lib/session";
-import DocumentBuilder from "./DocumentBuilder";
-import LoginForm from "./LoginForm";
+import { getMe, setOnUnauthorized, type User } from "@/lib/api";
+import AuthForm from "./AuthForm";
+import Workspace from "./Workspace";
 
-// Loads the list of agreements from the backend, then shows the builder.
-function DocumentLoader() {
-  const [documents, setDocuments] = useState<DocumentSpec[] | null>(null);
-  const [loadFailed, setLoadFailed] = useState(false);
-
-  useEffect(() => {
-    getDocuments().then(setDocuments, () => setLoadFailed(true));
-  }, []);
-
-  if (loadFailed) {
-    return (
-      <p role="alert" className="text-sm text-red-700">
-        Could not load the agreements. Check that the backend is running, then reload the page.
-      </p>
-    );
-  }
-  if (documents === null) return <p className="text-sm text-slate-600">Loading the agreements...</p>;
-  return <DocumentBuilder documents={documents} />;
+// Shown on every screen. The printed PDF carries its own copy (DocumentBuilder).
+function LegalNotice() {
+  return (
+    <p
+      role="note"
+      className="sticky bottom-0 z-10 border-t border-teal/30 bg-[#e9f5f4] px-4 py-2 text-center text-xs text-slate-700 print:hidden"
+    >
+      Drafts are a starting point for review by a lawyer. They are not legal advice.
+    </p>
+  );
 }
 
-// Shows the sign-in screen, or the document builder once someone is signed in.
+// Asks the backend who is logged in, then shows the log in screen or the workspace.
 export default function App() {
-  const user = useStoredUser();
+  // undefined until the backend has answered.
+  const [user, setUser] = useState<User | null | undefined>(undefined);
 
-  if (user === undefined) return null;
-  if (user === null) return <LoginForm onLogin={setStoredUser} />;
+  useEffect(() => {
+    setOnUnauthorized(() => setUser(null));
+    getMe().then(setUser, () => setUser(null));
+  }, []);
 
   return (
     <>
-      <header className="flex items-start justify-between gap-4 print:hidden">
-        <div>
-          <h1 className="text-2xl font-semibold text-navy">Pre-Legal</h1>
-          <p className="text-sm text-slate-600">
-            Tell the assistant what you need and the agreement fills in as you answer. Download it as a PDF when you are done.
-          </p>
-        </div>
-        <p className="shrink-0 text-sm text-slate-600">
-          Signed in as <span className="font-medium text-slate-800">{user.name}</span>
-          <button
-            type="button"
-            onClick={() => setStoredUser(null)}
-            className="ml-3 rounded-md border border-slate-300 px-3 py-1 hover:border-teal hover:text-teal"
-          >
-            Sign out
-          </button>
-        </p>
-      </header>
-      <DocumentLoader />
+      {user === null && <AuthForm onAuthenticated={setUser} />}
+      {user && <Workspace user={user} onLoggedOut={() => setUser(null)} />}
+      {user === undefined && <div className="flex-1" />}
+      <LegalNotice />
     </>
   );
 }

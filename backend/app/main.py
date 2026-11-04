@@ -7,13 +7,13 @@ from datetime import date
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import AfterValidator, BaseModel, Field, StringConstraints, model_validator
+from pydantic import AfterValidator, BaseModel, Field, model_validator
 
-from app import db
+from app import auth, db, drafts
 from app.chat import ChatMessage, ChatTurn, ChooseTurn, chat_turn, choose_turn
 from app.documents import CATALOG, DocumentId, fields_model, standard_terms
 
@@ -35,24 +35,7 @@ app = FastAPI(title="Pre-Legal", lifespan=lifespan)
 
 # Only needed in development, when the Next.js dev server on port 3000 calls the API.
 if origins := os.environ.get("CORS_ORIGINS"):
-    app.add_middleware(CORSMiddleware, allow_origins=[o.strip() for o in origins.split(",")], allow_methods=["*"], allow_headers=["*"])
-
-Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
-Email = Annotated[
-    str,
-    StringConstraints(strip_whitespace=True, to_lower=True, max_length=254, pattern=r"^[^@\s]+@[^@\s]+$"),
-]
-
-
-class LoginRequest(BaseModel):
-    name: Name
-    email: Email
-
-
-class User(BaseModel):
-    id: int
-    name: str
-    email: str
+    app.add_middleware(CORSMiddleware, allow_origins=[o.strip() for o in origins.split(",")], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 
 def ends_with_user(messages: list[ChatMessage]) -> list[ChatMessage]:
@@ -97,19 +80,13 @@ def template(doc_id: DocumentId) -> PlainTextResponse:
     return PlainTextResponse(standard_terms(doc_id), media_type="text/markdown")
 
 
-@app.post("/api/login")
-def login(body: LoginRequest, request: Request) -> User:
-    """Placeholder sign-in: no password, the email identifies the user."""
-    return User(**db.login(request.app.state.db_path, body.name, body.email))
-
-
 def _assistant_unavailable(exc: Exception) -> HTTPException:
     # Only the exception type: provider errors can echo request details.
     logger.error("chat failed: %s", type(exc).__name__)
     return HTTPException(502, "The assistant is unavailable. Try again.")
 
 
-@app.post("/api/choose")
+@app.post("/api/choose", dependencies=[Depends(auth.current_user)])
 def choose(body: ChooseRequest) -> ChooseTurn:
     """One turn of choosing a document: the assistant's reply plus the document it recommends."""
     try:
@@ -118,7 +95,7 @@ def choose(body: ChooseRequest) -> ChooseTurn:
         raise _assistant_unavailable(exc)
 
 
-@app.post("/api/chat")
+@app.post("/api/chat", dependencies=[Depends(auth.current_user)])
 def chat(body: ChatRequest) -> ChatTurn:
     """One turn of a document interview: the assistant's reply plus the merged fields."""
     try:
@@ -126,6 +103,9 @@ def chat(body: ChatRequest) -> ChatTurn:
     except Exception as exc:
         raise _assistant_unavailable(exc)
 
+
+app.include_router(auth.router)
+app.include_router(drafts.router)
 
 # Mounted last so the /api routes above take precedence. Skipped until `npm run build` has run.
 if STATIC_DIR.is_dir():
