@@ -1,6 +1,6 @@
 // Builds the Mutual NDA as Markdown: a cover page generated from the values the chat
 // has collected, followed by the Common Paper standard terms from templates/mutual-nda.md.
-// The shape matches NdaFields in backend/app/chat.py; null means "not collected yet".
+// The shape matches NdaFields in backend/app/fields.py; null means "not collected yet".
 
 export type Party = {
   name: string | null;
@@ -23,7 +23,7 @@ export type NdaValues = {
   party2: Party;
 };
 
-const emptyParty: Party = { name: null, title: null, company: null, noticeAddress: null };
+export const emptyParty: Party = { name: null, title: null, company: null, noticeAddress: null };
 
 export const emptyValues: NdaValues = {
   purpose: null,
@@ -40,7 +40,7 @@ export const emptyValues: NdaValues = {
 };
 
 // Empty fields show as bracketed placeholders, like the original template.
-function orPlaceholder(value: string | null, label: string): string {
+export function orPlaceholder(value: string | null, label: string): string {
   return value?.trim() || `[${label}]`;
 }
 
@@ -68,10 +68,23 @@ export function formatDate(isoDate: string | null): string {
   });
 }
 
-export function buildCoverPage(v: NdaValues): string {
-  const partyRow = (label: string, key: keyof Party) =>
-    `| ${label} | ${cell(orPlaceholder(v.party1[key], `Party 1 ${label}`))} | ${cell(orPlaceholder(v.party2[key], `Party 2 ${label}`))} |`;
+// The signature table at the end of a cover page, one column per party.
+export function partyTable(roles: [string, string], p1: Party, p2: Party): string {
+  const row = (label: string, key: keyof Party) =>
+    `| ${label} | ${cell(orPlaceholder(p1[key], `${roles[0]} ${label}`))} | ${cell(orPlaceholder(p2[key], `${roles[1]} ${label}`))} |`;
+  return [
+    `| | ${roles[0].toUpperCase()} | ${roles[1].toUpperCase()} |`,
+    "|:--- | :---- | :---- |",
+    "| Signature | | |",
+    row("Print Name", "name"),
+    row("Title", "title"),
+    row("Company", "company"),
+    row("Notice Address", "noticeAddress"),
+    "| Date | | |",
+  ].join("\n");
+}
 
+export function buildCoverPage(v: NdaValues): string {
   return [
     "# Mutual Non-Disclosure Agreement",
     "## Using This Mutual Non-Disclosure Agreement",
@@ -96,41 +109,40 @@ export function buildCoverPage(v: NdaValues): string {
     "### MNDA Modifications",
     v.modifications?.trim() || "None.",
     "By signing this Cover Page, each party agrees to enter into this MNDA as of the Effective Date.",
-    [
-      "| | PARTY 1 | PARTY 2 |",
-      "|:--- | :---- | :---- |",
-      "| Signature | | |",
-      partyRow("Print Name", "name"),
-      partyRow("Title", "title"),
-      partyRow("Company", "company"),
-      partyRow("Notice Address", "noticeAddress"),
-      "| Date | | |",
-    ].join("\n"),
+    partyTable(["Party 1", "Party 2"], v.party1, v.party2),
   ].join("\n\n");
+}
+
+export function partyComplete(p: Party): boolean {
+  return Object.values(p).every((t) => t?.trim());
 }
 
 // True once every required detail is collected; modifications are optional.
 export function isComplete(v: NdaValues): boolean {
-  const text = [v.purpose, v.governingLaw, v.jurisdiction, ...Object.values(v.party1), ...Object.values(v.party2)];
   return (
-    text.every((t) => t?.trim()) &&
+    [v.purpose, v.governingLaw, v.jurisdiction].every((t) => t?.trim()) &&
+    partyComplete(v.party1) &&
+    partyComplete(v.party2) &&
     formatDate(v.effectiveDate) !== "" &&
     (v.mndaExpires === false || (v.mndaExpires === true && v.mndaTermYears !== null)) &&
     (v.confidentialityPerpetual === true || (v.confidentialityPerpetual === false && v.confidentialityYears !== null))
   );
 }
 
+export function partyRows(role: string, p: Party): [string, string][] {
+  return [
+    [`${role} company`, p.company ?? ""],
+    [`${role} signer`, [p.name, p.title].filter(Boolean).join(", ")],
+    [`${role} notice address`, p.noticeAddress ?? ""],
+  ];
+}
+
 // The details the user confirms before downloading, as [label, value] rows.
 // Only shown once isComplete(v), so it needs no placeholders for missing values.
 export function summarize(v: NdaValues): [string, string][] {
-  const party = (n: 1 | 2, p: Party): [string, string][] => [
-    [`Party ${n} company`, p.company ?? ""],
-    [`Party ${n} signer`, [p.name, p.title].filter(Boolean).join(", ")],
-    [`Party ${n} notice address`, p.noticeAddress ?? ""],
-  ];
   return [
-    ...party(1, v.party1),
-    ...party(2, v.party2),
+    ...partyRows("Party 1", v.party1),
+    ...partyRows("Party 2", v.party2),
     ["Purpose", v.purpose ?? ""],
     ["Effective date", formatDate(v.effectiveDate)],
     ["MNDA term", v.mndaExpires ? `Expires ${years(v.mndaTermYears)} from the Effective Date` : "Continues until terminated"],

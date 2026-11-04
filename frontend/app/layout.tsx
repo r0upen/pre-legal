@@ -7,10 +7,11 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
-// The title is also the default file name when saving the PDF.
+// The title is also the default file name when saving the PDF; DocumentBuilder puts the
+// chosen agreement's name in front of it.
 export const metadata: Metadata = {
-  title: "Mutual NDA - Pre-Legal",
-  description: "Draft a mutual non-disclosure agreement from the Common Paper template.",
+  title: "Pre-Legal",
+  description: "Draft common legal agreements from the Common Paper templates by chatting with an AI.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

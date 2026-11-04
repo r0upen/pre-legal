@@ -4,7 +4,10 @@
     "name": "Mutual Non-Disclosure Agreement",
     "description": "Lets two parties share confidential information with each other for a stated purpose while each keeps the other's information private.",
     "version": "1.0",
-    "files": ["mutual-nda-coverpage.md", "mutual-nda.md"],
+    "files": [
+      "mutual-nda-coverpage.md",
+      "mutual-nda.md"
+    ],
     "source": "https://github.com/CommonPaper/Mutual-NDA",
     "source_commit": "2a3068b6c0ab6015c440f541d5b215bc3ac2f4cb"
   },
@@ -13,89 +16,879 @@
     "name": "Cloud Service Agreement",
     "description": "Terms for a provider selling cloud software or SaaS to a customer, covering access, fees, data, warranties and liability.",
     "version": "3.0",
-    "files": ["cloud-service-agreement.md"],
+    "files": [
+      "cloud-service-agreement.md"
+    ],
     "source": "https://github.com/CommonPaper/CSA",
-    "source_commit": "3efceb01e3c8bfb7b302a5f34975aa2b084026a3"
+    "source_commit": "3efceb01e3c8bfb7b302a5f34975aa2b084026a3",
+    "coverPage": {
+      "parties": [
+        "Provider",
+        "Customer"
+      ],
+      "fields": [
+        {
+          "key": "cloudService",
+          "label": "Cloud Service",
+          "ask": "What cloud service or product is the customer subscribing to?"
+        },
+        {
+          "key": "orderDate",
+          "label": "Order Date",
+          "ask": "When does the order start?",
+          "type": "date"
+        },
+        {
+          "key": "subscriptionPeriod",
+          "label": "Subscription Period",
+          "ask": "How long is each subscription period (1 year is common)?"
+        },
+        {
+          "key": "nonRenewalNoticeDate",
+          "label": "Non-Renewal Notice Date",
+          "ask": "The subscription renews automatically unless a party gives notice: how many days before the end of a period must that notice come?",
+          "default": "30 days before the end of the Subscription Period"
+        },
+        {
+          "key": "fees",
+          "label": "Fees",
+          "ask": "What are the fees, and how often are they charged?"
+        },
+        {
+          "key": "paymentProcess",
+          "label": "Payment Process",
+          "ask": "How will the customer pay: by invoice, with how many days to pay, or by automatic payment (invoicing annually in advance, due in 30 days, is common)?"
+        },
+        {
+          "key": "technicalSupport",
+          "label": "Technical Support",
+          "ask": "What technical support will the provider give?",
+          "default": "email support during the provider's business hours"
+        },
+        {
+          "key": "effectiveDate",
+          "label": "Effective Date",
+          "ask": "When should the agreement take effect?",
+          "type": "date"
+        },
+        {
+          "key": "governingLaw",
+          "label": "Governing Law",
+          "ask": "Which state's or country's law should govern the agreement?"
+        },
+        {
+          "key": "chosenCourts",
+          "label": "Chosen Courts",
+          "ask": "Which courts should handle disputes (usually the state or federal courts in one city in the governing law's state)?"
+        },
+        {
+          "key": "generalCapAmount",
+          "label": "General Cap Amount",
+          "ask": "What is the general limit on each party's liability?",
+          "default": "1 times the fees paid or payable in the 12 months before the claim"
+        },
+        {
+          "key": "providerCoveredClaims",
+          "label": "Provider Covered Claims",
+          "ask": "Which third-party claims will the provider defend the customer against?",
+          "default": "any claim that the Cloud Service infringes or misappropriates a third party's intellectual property rights"
+        },
+        {
+          "key": "customerCoveredClaims",
+          "label": "Customer Covered Claims",
+          "ask": "Which third-party claims will the customer defend the provider against?",
+          "default": "any claim that Customer Content, or the customer's use of the Cloud Service in breach of the Agreement, infringes a third party's rights or violates the law"
+        },
+        {
+          "key": "dpa",
+          "label": "DPA",
+          "ask": "Is there a Data Processing Agreement between the parties? If so, which one?",
+          "default": "None"
+        },
+        {
+          "key": "modifications",
+          "label": "Changes to the Standard Terms",
+          "ask": "Would you like any changes to the standard terms (most people have none)?",
+          "default": "None"
+        }
+      ]
+    }
   },
   {
     "id": "service-level-agreement",
     "name": "Service Level Agreement",
     "description": "Uptime and support commitments, with service credits, for a cloud service. Used alongside a Cloud Service Agreement.",
     "version": "2.0",
-    "files": ["service-level-agreement.md"],
+    "files": [
+      "service-level-agreement.md"
+    ],
     "source": "https://github.com/CommonPaper/SLA",
-    "source_commit": "5b0e6336f058a66c4976d70ecabf1f5fb9ef3af4"
+    "source_commit": "5b0e6336f058a66c4976d70ecabf1f5fb9ef3af4",
+    "coverPage": {
+      "parties": [
+        "Provider",
+        "Customer"
+      ],
+      "fields": [
+        {
+          "key": "agreement",
+          "label": "Agreement",
+          "ask": "Which main agreement does this Service Level Agreement attach to (its name, the parties and its date)?"
+        },
+        {
+          "key": "targetUptime",
+          "label": "Target Uptime",
+          "ask": "What monthly uptime should the provider aim for (99.9% is common)?"
+        },
+        {
+          "key": "uptimeCredit",
+          "label": "Uptime Credit",
+          "ask": "What credit does the customer get when uptime falls below the target?",
+          "default": "10% of the monthly fee if uptime is below the Target Uptime"
+        },
+        {
+          "key": "scheduledDowntime",
+          "label": "Scheduled Downtime",
+          "ask": "When may the provider take the service down for planned maintenance?",
+          "default": "with at least 48 hours' notice, outside the customer's business hours"
+        },
+        {
+          "key": "targetResponseTime",
+          "label": "Target Response Time",
+          "ask": "How quickly should the provider respond to support requests (1 business day is common)?"
+        },
+        {
+          "key": "responseTimeCredit",
+          "label": "Response Time Credit",
+          "ask": "What credit does the customer get for each missed response time?",
+          "default": "5% of the monthly fee per missed response"
+        },
+        {
+          "key": "supportChannel",
+          "label": "Support Channel",
+          "ask": "How should the customer contact support (e.g. an email address or ticket system)?"
+        }
+      ]
+    }
   },
   {
     "id": "data-processing-agreement",
     "name": "Data Processing Agreement",
     "description": "How a provider processes personal data on a customer's behalf under privacy laws such as GDPR. Used alongside a Cloud Service Agreement.",
     "version": "1.0",
-    "files": ["data-processing-agreement.md"],
+    "files": [
+      "data-processing-agreement.md"
+    ],
     "source": "https://github.com/CommonPaper/DPA",
-    "source_commit": "9f1c40d3fb0bb900397a919d058a9c0870f6b0f0"
+    "source_commit": "9f1c40d3fb0bb900397a919d058a9c0870f6b0f0",
+    "coverPage": {
+      "parties": [
+        "Provider",
+        "Customer"
+      ],
+      "fields": [
+        {
+          "key": "agreement",
+          "label": "Agreement",
+          "ask": "Which main agreement does this Data Processing Agreement attach to (its name, the parties and its date)?"
+        },
+        {
+          "key": "categoriesOfDataSubjects",
+          "label": "Categories of Data Subjects",
+          "ask": "Whose personal data will be processed (usually the customer's end users and employees)?"
+        },
+        {
+          "key": "categoriesOfPersonalData",
+          "label": "Categories of Personal Data",
+          "ask": "What kinds of personal data will be processed (usually names, contact details and usage data)?"
+        },
+        {
+          "key": "specialCategoryData",
+          "label": "Special Category Data",
+          "ask": "Will any special category data, such as health, biometric or religious data, be processed (most agreements have none)?"
+        },
+        {
+          "key": "specialCategorySafeguards",
+          "label": "Special Category Data Restrictions or Safeguards",
+          "ask": "(Only if special category data is processed.) What extra restrictions or safeguards apply to it?",
+          "default": "Not applicable"
+        },
+        {
+          "key": "frequencyOfTransfer",
+          "label": "Frequency of Transfer",
+          "ask": "How often will personal data be transferred to the provider?",
+          "default": "Continuous"
+        },
+        {
+          "key": "natureAndPurposeOfProcessing",
+          "label": "Nature and Purpose of Processing",
+          "ask": "What will the provider do with the personal data, and why?",
+          "default": "receiving, holding, using and protecting the data to provide the services under the Agreement"
+        },
+        {
+          "key": "durationOfProcessing",
+          "label": "Duration of Processing",
+          "ask": "How long will the processing last?",
+          "default": "for the term of the Agreement, plus the time needed to return or delete the data"
+        },
+        {
+          "key": "approvedSubprocessors",
+          "label": "Approved Subprocessors",
+          "ask": "Which subprocessors may the provider use (a list, or a web page that lists them)?"
+        },
+        {
+          "key": "securityPolicy",
+          "label": "Security Policy",
+          "ask": "Which security policy will the provider follow?",
+          "default": "as defined in the Agreement"
+        },
+        {
+          "key": "providerSecurityContact",
+          "label": "Provider Security Contact",
+          "ask": "Who should the customer contact about security issues (an email address)?"
+        },
+        {
+          "key": "governingMemberState",
+          "label": "Governing Member State",
+          "ask": "If personal data is transferred out of the EEA or UK, which country's law governs the transfer clauses?",
+          "default": "Ireland for EEA transfers; England and Wales for UK transfers"
+        }
+      ]
+    }
   },
   {
     "id": "professional-services-agreement",
     "name": "Professional Services Agreement",
     "description": "Terms for a provider performing services for a customer under statements of work, covering deliverables, fees and ownership.",
     "version": "1.0",
-    "files": ["professional-services-agreement.md"],
+    "files": [
+      "professional-services-agreement.md"
+    ],
     "source": "https://github.com/CommonPaper/PSA",
-    "source_commit": "3fb650a72d229f6d6e6d64abebae5e83c6699535"
+    "source_commit": "3fb650a72d229f6d6e6d64abebae5e83c6699535",
+    "coverPage": {
+      "parties": [
+        "Provider",
+        "Customer"
+      ],
+      "fields": [
+        {
+          "key": "services",
+          "label": "Services",
+          "ask": "What services will the provider perform?"
+        },
+        {
+          "key": "deliverables",
+          "label": "Deliverables",
+          "ask": "What will the provider deliver, if anything (some services have no deliverables)?"
+        },
+        {
+          "key": "timeOfAssignment",
+          "label": "Time of Assignment",
+          "ask": "(Only if there are deliverables.) When does ownership of deliverables pass to the customer: when created, or once paid for?",
+          "default": "once paid for"
+        },
+        {
+          "key": "rejectionPeriod",
+          "label": "Rejection Period",
+          "ask": "(Only if there are deliverables.) How long does the customer have to review and reject a deliverable?",
+          "default": "10 business days"
+        },
+        {
+          "key": "resubmissionPeriod",
+          "label": "Resubmission Period",
+          "ask": "(Only if there are deliverables.) How long does the provider have to fix and resubmit a rejected deliverable?",
+          "default": "10 business days"
+        },
+        {
+          "key": "fees",
+          "label": "Fees",
+          "ask": "What are the fees for the services (e.g. a fixed price or an hourly rate)?"
+        },
+        {
+          "key": "paymentPeriod",
+          "label": "Payment Period",
+          "ask": "How long does the customer have to pay each invoice?",
+          "default": "30 days from receipt of the invoice"
+        },
+        {
+          "key": "sowTerm",
+          "label": "SOW Term",
+          "ask": "How long will the services run?"
+        },
+        {
+          "key": "customerObligations",
+          "label": "Customer Obligations",
+          "ask": "What must the customer do or provide (e.g. access, information, staff)?",
+          "default": "None"
+        },
+        {
+          "key": "effectiveDate",
+          "label": "Effective Date",
+          "ask": "When should the agreement take effect?",
+          "type": "date"
+        },
+        {
+          "key": "governingLaw",
+          "label": "Governing Law",
+          "ask": "Which state's or country's law should govern the agreement?"
+        },
+        {
+          "key": "chosenCourts",
+          "label": "Chosen Courts",
+          "ask": "Which courts should handle disputes (usually the state or federal courts in one city in the governing law's state)?"
+        },
+        {
+          "key": "generalCapAmount",
+          "label": "General Cap Amount",
+          "ask": "What is the general limit on each party's liability?",
+          "default": "1 times the fees paid or payable in the 12 months before the claim"
+        },
+        {
+          "key": "increasedClaims",
+          "label": "Increased Claims",
+          "ask": "Should any kinds of claims (e.g. breach of confidentiality or data protection) have a higher liability limit?",
+          "default": "None"
+        },
+        {
+          "key": "increasedCapAmount",
+          "label": "Increased Cap Amount",
+          "ask": "(Only if there are Increased Claims.) What is the higher liability limit for them?",
+          "default": "Not applicable"
+        },
+        {
+          "key": "unlimitedClaims",
+          "label": "Unlimited Claims",
+          "ask": "Should any kinds of claims have no liability limit at all?",
+          "default": "None"
+        },
+        {
+          "key": "providerCoveredClaims",
+          "label": "Provider Covered Claims",
+          "ask": "Which third-party claims will the provider defend the customer against?",
+          "default": "any claim that the Deliverables infringe or misappropriate a third party's intellectual property rights"
+        },
+        {
+          "key": "customerCoveredClaims",
+          "label": "Customer Covered Claims",
+          "ask": "Which third-party claims will the customer defend the provider against?",
+          "default": "any claim that materials the customer provides infringe a third party's rights"
+        },
+        {
+          "key": "additionalWarranties",
+          "label": "Additional Warranties",
+          "ask": "Does either party give any warranties beyond the standard terms?",
+          "default": "None"
+        },
+        {
+          "key": "insuranceMinimums",
+          "label": "Insurance Minimums",
+          "ask": "What insurance must the provider carry, if any?",
+          "default": "None"
+        },
+        {
+          "key": "dpa",
+          "label": "DPA",
+          "ask": "Is there a Data Processing Agreement between the parties? If so, which one?",
+          "default": "None"
+        },
+        {
+          "key": "securityPolicy",
+          "label": "Security Policy",
+          "ask": "Which security policy will the provider follow, if any?",
+          "default": "None"
+        },
+        {
+          "key": "customerPolicies",
+          "label": "Customer Policies",
+          "ask": "Which customer policies must the provider follow, if any?",
+          "default": "None"
+        },
+        {
+          "key": "modifications",
+          "label": "Changes to the Standard Terms",
+          "ask": "Would you like any changes to the standard terms (most people have none)?",
+          "default": "None"
+        }
+      ]
+    }
   },
   {
     "id": "software-license-agreement",
     "name": "Software License Agreement",
     "description": "Terms for licensing software that the customer installs and runs on its own systems.",
     "version": "1.1",
-    "files": ["software-license-agreement.md"],
+    "files": [
+      "software-license-agreement.md"
+    ],
     "source": "https://github.com/CommonPaper/Software-License-Agreement",
-    "source_commit": "8ea7de38148a8a0c235b7aaf31487028c2e519ca"
+    "source_commit": "8ea7de38148a8a0c235b7aaf31487028c2e519ca",
+    "coverPage": {
+      "parties": [
+        "Provider",
+        "Customer"
+      ],
+      "fields": [
+        {
+          "key": "software",
+          "label": "Software",
+          "ask": "What software is being licensed?"
+        },
+        {
+          "key": "orderDate",
+          "label": "Order Date",
+          "ask": "When does the order start?",
+          "type": "date"
+        },
+        {
+          "key": "subscriptionPeriod",
+          "label": "Subscription Period",
+          "ask": "How long is each subscription period (1 year is common)?"
+        },
+        {
+          "key": "nonRenewalNoticeDate",
+          "label": "Non-Renewal Notice Date",
+          "ask": "The license renews automatically unless a party gives notice: how many days before the end of a period must that notice come?",
+          "default": "30 days before the end of the Subscription Period"
+        },
+        {
+          "key": "fees",
+          "label": "Fees",
+          "ask": "What are the fees, and how often are they charged?"
+        },
+        {
+          "key": "paymentProcess",
+          "label": "Payment Process",
+          "ask": "How will the customer pay: by invoice, with how many days to pay, or by automatic payment (invoicing annually in advance, due in 30 days, is common)?"
+        },
+        {
+          "key": "permittedUses",
+          "label": "Permitted Uses",
+          "ask": "What may the customer use the software for?",
+          "default": "the customer's internal business purposes"
+        },
+        {
+          "key": "licenseLimits",
+          "label": "License Limits",
+          "ask": "Are there limits on use, such as a number of users, devices or installations (many licenses have none)?"
+        },
+        {
+          "key": "warrantyPeriod",
+          "label": "Warranty Period",
+          "ask": "For how long does the provider warrant that the software works as documented?",
+          "default": "90 days from the Order Date"
+        },
+        {
+          "key": "deletionProcedure",
+          "label": "Deletion Procedure",
+          "ask": "When the license ends, how must the customer remove the software?",
+          "default": "uninstall the Software, delete all copies and confirm this in writing"
+        },
+        {
+          "key": "effectiveDate",
+          "label": "Effective Date",
+          "ask": "When should the agreement take effect?",
+          "type": "date"
+        },
+        {
+          "key": "governingLaw",
+          "label": "Governing Law",
+          "ask": "Which state's or country's law should govern the agreement?"
+        },
+        {
+          "key": "chosenCourts",
+          "label": "Chosen Courts",
+          "ask": "Which courts should handle disputes (usually the state or federal courts in one city in the governing law's state)?"
+        },
+        {
+          "key": "generalCapAmount",
+          "label": "General Cap Amount",
+          "ask": "What is the general limit on each party's liability?",
+          "default": "1 times the fees paid or payable in the 12 months before the claim"
+        },
+        {
+          "key": "increasedClaims",
+          "label": "Increased Claims",
+          "ask": "Should any kinds of claims (e.g. breach of confidentiality or data protection) have a higher liability limit?",
+          "default": "None"
+        },
+        {
+          "key": "increasedCapAmount",
+          "label": "Increased Cap Amount",
+          "ask": "(Only if there are Increased Claims.) What is the higher liability limit for them?",
+          "default": "Not applicable"
+        },
+        {
+          "key": "unlimitedClaims",
+          "label": "Unlimited Claims",
+          "ask": "Should any kinds of claims have no liability limit at all?",
+          "default": "None"
+        },
+        {
+          "key": "providerCoveredClaims",
+          "label": "Provider Covered Claims",
+          "ask": "Which third-party claims will the provider defend the customer against?",
+          "default": "any claim that the Software infringes or misappropriates a third party's intellectual property rights"
+        },
+        {
+          "key": "customerCoveredClaims",
+          "label": "Customer Covered Claims",
+          "ask": "Which third-party claims will the customer defend the provider against?",
+          "default": "any claim arising from the customer's use of the Software in breach of the Agreement"
+        },
+        {
+          "key": "additionalWarranties",
+          "label": "Additional Warranties",
+          "ask": "Does either party give any warranties beyond the standard terms?",
+          "default": "None"
+        },
+        {
+          "key": "modifications",
+          "label": "Changes to the Standard Terms",
+          "ask": "Would you like any changes to the standard terms (most people have none)?",
+          "default": "None"
+        }
+      ]
+    }
   },
   {
     "id": "pilot-agreement",
     "name": "Pilot Agreement",
     "description": "A short-term trial that lets a prospective customer evaluate a product before committing to a full commercial agreement.",
     "version": "1.1",
-    "files": ["pilot-agreement.md"],
+    "files": [
+      "pilot-agreement.md"
+    ],
     "source": "https://github.com/CommonPaper/Pilot-Agreement",
-    "source_commit": "5e7cdd4678cd9d6b3178872cce4a01d632f41f14"
+    "source_commit": "5e7cdd4678cd9d6b3178872cce4a01d632f41f14",
+    "coverPage": {
+      "parties": [
+        "Provider",
+        "Customer"
+      ],
+      "fields": [
+        {
+          "key": "product",
+          "label": "Product",
+          "ask": "What product will the customer try during the pilot?"
+        },
+        {
+          "key": "pilotPeriod",
+          "label": "Pilot Period",
+          "ask": "How long will the pilot last (90 days is common)?"
+        },
+        {
+          "key": "fees",
+          "label": "Fees",
+          "ask": "Will the customer pay anything for the pilot, and if so how much (many pilots are free)?"
+        },
+        {
+          "key": "effectiveDate",
+          "label": "Effective Date",
+          "ask": "When should the agreement take effect?",
+          "type": "date"
+        },
+        {
+          "key": "governingLaw",
+          "label": "Governing Law",
+          "ask": "Which state's or country's law should govern the agreement?"
+        },
+        {
+          "key": "chosenCourts",
+          "label": "Chosen Courts",
+          "ask": "Which courts should handle disputes (usually the state or federal courts in one city in the governing law's state)?"
+        },
+        {
+          "key": "generalCapAmount",
+          "label": "General Cap Amount",
+          "ask": "What is the general limit on each party's liability?",
+          "default": "$10,000"
+        },
+        {
+          "key": "modifications",
+          "label": "Changes to the Standard Terms",
+          "ask": "Would you like any changes to the standard terms (most people have none)?",
+          "default": "None"
+        }
+      ]
+    }
   },
   {
     "id": "design-partner-agreement",
     "name": "Design Partner Agreement",
     "description": "Gives an early partner access to a product in development in exchange for feedback.",
     "version": "1.0",
-    "files": ["design-partner-agreement.md"],
+    "files": [
+      "design-partner-agreement.md"
+    ],
     "source": "https://github.com/CommonPaper/Design-Partner-Agreement",
-    "source_commit": "7b3853c26e75e28c24332ca00dfc607a7756e0ba"
+    "source_commit": "7b3853c26e75e28c24332ca00dfc607a7756e0ba",
+    "coverPage": {
+      "parties": [
+        "Provider",
+        "Partner"
+      ],
+      "fields": [
+        {
+          "key": "product",
+          "label": "Product",
+          "ask": "What product will the design partner get early access to?"
+        },
+        {
+          "key": "program",
+          "label": "Program",
+          "ask": "What will each party do in the program (e.g. the partner gives feedback in regular sessions; the provider gives early access or a discount)?"
+        },
+        {
+          "key": "term",
+          "label": "Term",
+          "ask": "How long will the program run (6 months is common)?"
+        },
+        {
+          "key": "fees",
+          "label": "Fees",
+          "ask": "Will the partner pay anything, and if so how much and how often (many programs are free)?"
+        },
+        {
+          "key": "effectiveDate",
+          "label": "Effective Date",
+          "ask": "When should the agreement take effect?",
+          "type": "date"
+        },
+        {
+          "key": "governingLaw",
+          "label": "Governing Law",
+          "ask": "Which state's or country's law should govern the agreement?"
+        },
+        {
+          "key": "chosenCourts",
+          "label": "Chosen Courts",
+          "ask": "Which courts should handle disputes (usually the state or federal courts in one city in the governing law's state)?"
+        },
+        {
+          "key": "modifications",
+          "label": "Changes to the Standard Terms",
+          "ask": "Would you like any changes to the standard terms (most people have none)?",
+          "default": "None"
+        }
+      ]
+    }
   },
   {
     "id": "partnership-agreement",
     "name": "Partnership Agreement",
     "description": "Terms for two companies cooperating on a business partnership, with each party's obligations set on the cover page and a license to use one party's brand.",
     "version": "1.0",
-    "files": ["partnership-agreement.md"],
+    "files": [
+      "partnership-agreement.md"
+    ],
     "source": "https://github.com/CommonPaper/Partnership-Agreement",
-    "source_commit": "6edeb5a285206893cfd0ac482267db44d90f317c"
+    "source_commit": "6edeb5a285206893cfd0ac482267db44d90f317c",
+    "coverPage": {
+      "parties": [
+        "Company",
+        "Partner"
+      ],
+      "fields": [
+        {
+          "key": "companyObligations",
+          "label": "Company Obligations",
+          "ask": "What will the company do for the partnership (e.g. promotion, referrals, payments, brand use)?"
+        },
+        {
+          "key": "partnerObligations",
+          "label": "Partner Obligations",
+          "ask": "What will the partner do for the partnership?"
+        },
+        {
+          "key": "territory",
+          "label": "Territory",
+          "ask": "Where does the partnership apply?",
+          "default": "Worldwide"
+        },
+        {
+          "key": "paymentProcess",
+          "label": "Payment Process",
+          "ask": "(Only if either party pays fees.) How will payments be made?",
+          "default": "Not applicable"
+        },
+        {
+          "key": "paymentSchedule",
+          "label": "Payment Schedule",
+          "ask": "(Only if either party pays fees.) When are payments due?",
+          "default": "Not applicable"
+        },
+        {
+          "key": "endDate",
+          "label": "End Date",
+          "ask": "When does the partnership end (1 year after the Effective Date is common)?"
+        },
+        {
+          "key": "effectiveDate",
+          "label": "Effective Date",
+          "ask": "When should the agreement take effect?",
+          "type": "date"
+        },
+        {
+          "key": "governingLaw",
+          "label": "Governing Law",
+          "ask": "Which state's or country's law should govern the agreement?"
+        },
+        {
+          "key": "chosenCourts",
+          "label": "Chosen Courts",
+          "ask": "Which courts should handle disputes (usually the state or federal courts in one city in the governing law's state)?"
+        },
+        {
+          "key": "generalCapAmount",
+          "label": "General Cap Amount",
+          "ask": "What is the general limit on each party's liability?",
+          "default": "1 times the fees paid or payable in the 12 months before the claim"
+        },
+        {
+          "key": "increasedClaims",
+          "label": "Increased Claims",
+          "ask": "Should any kinds of claims (e.g. breach of confidentiality or data protection) have a higher liability limit?",
+          "default": "None"
+        },
+        {
+          "key": "increasedCapAmount",
+          "label": "Increased Cap Amount",
+          "ask": "(Only if there are Increased Claims.) What is the higher liability limit for them?",
+          "default": "Not applicable"
+        },
+        {
+          "key": "unlimitedClaims",
+          "label": "Unlimited Claims",
+          "ask": "Should any kinds of claims have no liability limit at all?",
+          "default": "None"
+        },
+        {
+          "key": "companyCoveredClaims",
+          "label": "Company Covered Claims",
+          "ask": "Which third-party claims will the company defend the partner against?",
+          "default": "any claim arising from the company's gross negligence or willful misconduct"
+        },
+        {
+          "key": "partnerCoveredClaims",
+          "label": "Partner Covered Claims",
+          "ask": "Which third-party claims will the partner defend the company against?",
+          "default": "any claim arising from the partner's gross negligence or willful misconduct"
+        },
+        {
+          "key": "additionalWarranties",
+          "label": "Additional Warranties",
+          "ask": "Does either party give any warranties beyond the standard terms?",
+          "default": "None"
+        },
+        {
+          "key": "dpa",
+          "label": "DPA",
+          "ask": "Is there a Data Processing Agreement between the parties? If so, which one?",
+          "default": "None"
+        },
+        {
+          "key": "brandGuidelines",
+          "label": "Brand Guidelines",
+          "ask": "Which brand guidelines must each party follow when using the other's brand, if any?",
+          "default": "None"
+        },
+        {
+          "key": "modifications",
+          "label": "Changes to the Standard Terms",
+          "ask": "Would you like any changes to the standard terms (most people have none)?",
+          "default": "None"
+        }
+      ]
+    }
   },
   {
     "id": "business-associate-agreement",
     "name": "Business Associate Agreement",
     "description": "HIPAA terms for a provider that handles protected health information (PHI) on behalf of a healthcare customer.",
     "version": "1.0",
-    "files": ["business-associate-agreement.md"],
+    "files": [
+      "business-associate-agreement.md"
+    ],
     "source": "https://github.com/CommonPaper/BAA",
-    "source_commit": "5f1fd992df1d0c78bf69997e1881e4107fa75695"
+    "source_commit": "5f1fd992df1d0c78bf69997e1881e4107fa75695",
+    "coverPage": {
+      "parties": [
+        "Provider",
+        "Company"
+      ],
+      "fields": [
+        {
+          "key": "agreement",
+          "label": "Agreement",
+          "ask": "Which main agreement does this Business Associate Agreement attach to (its name, the parties and its date)?"
+        },
+        {
+          "key": "baaEffectiveDate",
+          "label": "BAA Effective Date",
+          "ask": "When should this agreement take effect?",
+          "type": "date"
+        },
+        {
+          "key": "breachNotificationPeriod",
+          "label": "Breach Notification Period",
+          "ask": "How soon must the provider report a breach of protected health information?",
+          "default": "within 30 days after discovery"
+        },
+        {
+          "key": "limitations",
+          "label": "Limitations",
+          "ask": "Should the provider be restricted from subcontracting, offshoring, de-identifying or aggregating the data?",
+          "default": "None"
+        }
+      ]
+    }
   },
   {
     "id": "ai-addendum",
     "name": "AI Addendum",
     "description": "Terms for AI features in a product, covering inputs, outputs and model training. Used alongside a Cloud Service Agreement or Software License Agreement.",
     "version": "1.0",
-    "files": ["ai-addendum.md"],
+    "files": [
+      "ai-addendum.md"
+    ],
     "source": "https://github.com/CommonPaper/AI-Addendum",
-    "source_commit": "6d9b044df73a2477c177e5989fca7f8d27df9387"
+    "source_commit": "6d9b044df73a2477c177e5989fca7f8d27df9387",
+    "coverPage": {
+      "parties": [
+        "Provider",
+        "Customer"
+      ],
+      "fields": [
+        {
+          "key": "agreement",
+          "label": "Agreement",
+          "ask": "Which main agreement does this AI Addendum attach to (its name, the parties and its date)?"
+        },
+        {
+          "key": "trainingData",
+          "label": "Training Data",
+          "ask": "May the provider train AI models on the customer's inputs or outputs, and if so on which data (most customers say no)?"
+        },
+        {
+          "key": "trainingPurposes",
+          "label": "Training Purposes",
+          "ask": "(Only if there is training data.) For what purposes may it be used?",
+          "default": "Not applicable"
+        },
+        {
+          "key": "trainingRestrictions",
+          "label": "Training Restrictions",
+          "ask": "Are there restrictions on how training is done (e.g. de-identifying the data first)?",
+          "default": "None"
+        },
+        {
+          "key": "improvementRestrictions",
+          "label": "Improvement Restrictions",
+          "ask": "Are there limits on using the customer's data to improve the product in other ways?",
+          "default": "None"
+        }
+      ]
+    }
   }
 ]

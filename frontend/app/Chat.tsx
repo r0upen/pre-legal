@@ -9,25 +9,34 @@ type Props = {
   error: string;
   // Resolves to true once the assistant has answered; the typed text is kept otherwise.
   onSend: (text: string) => Promise<boolean>;
+  // The agreement being drafted, shown in the header with a way to change it.
+  documentName?: string;
+  onChangeDocument?: () => void;
+  // Buttons shown under the latest message, such as document suggestions.
+  children?: React.ReactNode;
 };
 
 const bubble = "max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm";
 
-export default function NdaChat({ messages, pending, error, onSend }: Props) {
+export default function Chat({ messages, pending, error, onSend, documentName, onChangeDocument, children }: Props) {
   const [draft, setDraft] = useState("");
   const text = draft.trim();
   const logRef = useRef<HTMLOListElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Start in the message box, except on touch screens, where focusing would pop up the keyboard.
+  // Return to it whenever the document changes: the button clicked to start or change one
+  // disappears, and focus would otherwise fall to the page.
+  const firstRender = useRef(true);
   useEffect(() => {
-    if (window.matchMedia?.("(pointer: fine)").matches) inputRef.current?.focus();
-  }, []);
+    if (!firstRender.current || window.matchMedia?.("(pointer: fine)").matches) inputRef.current?.focus();
+    firstRender.current = false;
+  }, [documentName]);
 
-  // Keep the latest message in view.
+  // Keep the latest message, and any buttons under it, in view.
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
-  }, [messages, pending]);
+  }, [messages, pending, children]);
 
   // Grow the box with its text, up to its max height.
   useEffect(() => {
@@ -63,7 +72,19 @@ export default function NdaChat({ messages, pending, error, onSend }: Props) {
         <span aria-hidden className="flex size-8 items-center justify-center rounded-full bg-teal text-xs font-semibold text-white">
           AI
         </span>
-        <h2 className="text-sm font-semibold text-navy">NDA assistant</h2>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-sm font-semibold text-navy">Pre-Legal assistant</h2>
+          {documentName && <p className="truncate text-xs text-slate-500">{documentName}</p>}
+        </div>
+        {onChangeDocument && (
+          <button
+            type="button"
+            onClick={onChangeDocument}
+            className="shrink-0 rounded-md border border-slate-300 px-3 py-1 text-xs text-slate-600 hover:border-teal hover:text-teal"
+          >
+            Change document
+          </button>
+        )}
       </header>
       <ol ref={logRef} role="log" aria-live="polite" className="flex-1 space-y-3 overflow-y-auto bg-slate-50 px-4 py-5">
         {messages.map((m, i) => (
@@ -79,6 +100,7 @@ export default function NdaChat({ messages, pending, error, onSend }: Props) {
             </p>
           </li>
         ))}
+        {children && !pending && <li>{children}</li>}
         {pending && (
           <li className="flex">
             <p className={`${bubble} flex items-center gap-1 rounded-bl-md border border-slate-200 bg-white py-3.5`}>

@@ -5,7 +5,8 @@ import sqlite3
 import pytest
 from fastapi.testclient import TestClient
 
-from app.main import TEMPLATES_DIR, app
+from app.documents import CATALOG, TEMPLATES_DIR
+from app.main import app
 
 
 @pytest.fixture
@@ -26,11 +27,21 @@ def test_health(client):
     assert client.get("/api/health").json() == {"status": "ok"}
 
 
-def test_mutual_nda_template_returns_file_text(client):
-    res = client.get("/api/templates/mutual-nda")
+def test_documents_lists_the_catalog(client):
+    assert client.get("/api/documents").json() == CATALOG
+
+
+@pytest.mark.parametrize("entry", CATALOG, ids=lambda e: e["id"])
+def test_template_returns_the_standard_terms(client, entry):
+    res = client.get(f"/api/templates/{entry['id']}")
     assert res.status_code == 200
     assert res.headers["content-type"].startswith("text/markdown")
-    assert res.text == (TEMPLATES_DIR / "mutual-nda.md").read_text()
+    # The Mutual NDA lists its cover page file first; the standard terms are always last.
+    assert res.text == (TEMPLATES_DIR / entry["files"][-1]).read_text()
+
+
+def test_template_rejects_unknown_documents(client):
+    assert client.get("/api/templates/employment-contract").status_code == 422
 
 
 def test_login_creates_user(client):

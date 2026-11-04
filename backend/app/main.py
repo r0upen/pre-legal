@@ -11,17 +11,16 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field, StringConstraints, field_validator
+from pydantic import AfterValidator, BaseModel, Field, StringConstraints, model_validator
 
 from app import db
-from app.chat import ChatMessage, ChatTurn, NdaFields, chat_turn
+from app.chat import ChatMessage, ChatTurn, ChooseTurn, chat_turn, choose_turn
+from app.documents import CATALOG, DocumentId, fields_model, standard_terms
 
 logger = logging.getLogger(__name__)
 
-# The Docker image mirrors the repo layout, so these paths work in both places.
-ROOT = Path(__file__).resolve().parents[2]
-TEMPLATES_DIR = ROOT / "templates"
-STATIC_DIR = ROOT / "frontend" / "out"
+# The Docker image mirrors the repo layout, so this path works in both places.
+STATIC_DIR = Path(__file__).resolve().parents[2] / "frontend" / "out"
 
 
 @asynccontextmanager
@@ -56,17 +55,29 @@ class User(BaseModel):
     email: str
 
 
+def ends_with_user(messages: list[ChatMessage]) -> list[ChatMessage]:
+    if messages[-1].role != "user":
+        raise ValueError("the last message must be from the user")
+    return messages
+
+
+Messages = Annotated[list[ChatMessage], Field(min_length=1, max_length=200), AfterValidator(ends_with_user)]
+
+
+class ChooseRequest(BaseModel):
+    messages: Messages
+
+
 class ChatRequest(BaseModel):
-    messages: Annotated[list[ChatMessage], Field(min_length=1, max_length=200)]
-    fields: NdaFields
+    document: DocumentId
+    messages: Messages
+    fields: dict  # checked against the document's own fields below
     today: date  # the user's local date, for relative dates like "next Monday"
 
-    @field_validator("messages")
-    @classmethod
-    def ends_with_user(cls, messages: list[ChatMessage]) -> list[ChatMessage]:
-        if messages[-1].role != "user":
-            raise ValueError("the last message must be from the user")
-        return messages
+    @model_validator(mode="after")
+    def fields_match_document(self):
+        self.fields = fields_model(self.document).model_validate(self.fields)
+        return self
 
 
 @app.get("/api/health")
@@ -74,10 +85,16 @@ def health() -> dict:
     return {"status": "ok"}
 
 
-@app.get("/api/templates/mutual-nda")
-def mutual_nda_template() -> PlainTextResponse:
-    """The Mutual NDA standard terms as Markdown."""
-    return PlainTextResponse((TEMPLATES_DIR / "mutual-nda.md").read_text(), media_type="text/markdown")
+@app.get("/api/documents")
+def documents() -> list[dict]:
+    """Every agreement Pre-Legal can draft, with its cover page fields (templates/catalog.json)."""
+    return CATALOG
+
+
+@app.get("/api/templates/{doc_id}")
+def template(doc_id: DocumentId) -> PlainTextResponse:
+    """A document's standard terms as Markdown."""
+    return PlainTextResponse(standard_terms(doc_id), media_type="text/markdown")
 
 
 @app.post("/api/login")
@@ -86,15 +103,28 @@ def login(body: LoginRequest, request: Request) -> User:
     return User(**db.login(request.app.state.db_path, body.name, body.email))
 
 
+def _assistant_unavailable(exc: Exception) -> HTTPException:
+    # Only the exception type: provider errors can echo request details.
+    logger.error("chat failed: %s", type(exc).__name__)
+    return HTTPException(502, "The assistant is unavailable. Try again.")
+
+
+@app.post("/api/choose")
+def choose(body: ChooseRequest) -> ChooseTurn:
+    """One turn of choosing a document: the assistant's reply plus the document it recommends."""
+    try:
+        return choose_turn(body.messages)
+    except Exception as exc:
+        raise _assistant_unavailable(exc)
+
+
 @app.post("/api/chat")
 def chat(body: ChatRequest) -> ChatTurn:
-    """One turn of the NDA interview: the assistant's reply plus the merged NDA fields."""
+    """One turn of a document interview: the assistant's reply plus the merged fields."""
     try:
-        return chat_turn(body.messages, body.fields, body.today)
+        return chat_turn(body.document, body.messages, body.fields, body.today)
     except Exception as exc:
-        # Only the exception type: provider errors can echo request details.
-        logger.error("chat failed: %s", type(exc).__name__)
-        raise HTTPException(502, "The assistant is unavailable. Try again.")
+        raise _assistant_unavailable(exc)
 
 
 # Mounted last so the /api routes above take precedence. Skipped until `npm run build` has run.

@@ -41,3 +41,24 @@ def test_every_template_is_listed(catalog):
     listed = {name for entry in catalog for name in entry["files"]}
     on_disk = {p.name for p in TEMPLATES_DIR.glob("*.md")} - {"LICENSE.md"}
     assert on_disk == listed
+
+
+# Every document except the Mutual NDA (which has its own cover page) describes the cover
+# page the chat fills in: the two parties and the terms, in interview order. Routine
+# terms carry Common Paper's usual default instead of being asked.
+def test_cover_page_specs_are_well_formed(catalog):
+    for entry in catalog:
+        if entry["id"] == "mutual-nda":
+            assert "coverPage" not in entry
+            continue
+        spec = entry["coverPage"]
+        assert len(spec["parties"]) == 2, entry["id"]
+        keys = [f["key"] for f in spec["fields"]]
+        assert len(keys) == len(set(keys)), entry["id"]
+        for field in spec["fields"]:
+            assert field["key"].isidentifier() and field["key"] not in {"party1", "party2"}, field
+            assert field["label"] and field["ask"], field
+            assert field.get("type", "text") in {"text", "date"}, field
+            assert set(field) <= {"key", "label", "ask", "type", "default"}, field
+            assert field["ask"].endswith("?"), field
+            assert not (field.get("type") == "date" and "default" in field), field
