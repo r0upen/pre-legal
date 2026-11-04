@@ -23,12 +23,19 @@ export default function NdaBuilder({ standardTerms }: { standardTerms: string })
   const complete = isComplete(values);
   const ready = complete && confirmed;
   const hint = complete ? "Available once you confirm the details below." : "Available once all required details are collected.";
+  const showSummary = complete && !confirmed;
   const downloadRef = useRef<HTMLButtonElement>(null);
+  const documentRef = useRef<HTMLDivElement>(null);
 
   // Confirming removes the summary panel and its focused button, so keep keyboard focus on the next step.
   useEffect(() => {
     if (confirmed) downloadRef.current?.focus();
   }, [confirmed]);
+
+  // The summary sits at the top of the scrolling document, so bring it into view when it appears.
+  useEffect(() => {
+    if (showSummary && documentRef.current) documentRef.current.scrollTop = 0;
+  }, [showSummary]);
 
   // The user's message joins the history only once the assistant has answered,
   // so a failed send can be retried without duplicating it.
@@ -52,15 +59,17 @@ export default function NdaBuilder({ standardTerms }: { standardTerms: string })
   }
 
   return (
-    <div className="grid flex-1 gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] print:block">
-      <aside className="space-y-6 print:hidden">
+    // On wide screens the row (grid-rows-1 is minmax(0, 1fr)) and min-h-0 keep the panes to the
+    // window height, so they scroll inside instead of growing with their content.
+    <div className="grid flex-1 gap-6 lg:min-h-0 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:grid-rows-1 print:block">
+      <aside className="flex flex-col gap-4 lg:min-h-0 print:hidden">
         <p role="note" className="rounded-md border-l-4 border-teal bg-teal/10 p-3 text-sm text-slate-700">
           This draft is a starting point for review by a lawyer. It is not legal advice.
         </p>
         <NdaChat messages={messages} pending={pending} error={error} onSend={handleSend} />
       </aside>
 
-      <section aria-label="NDA preview" className="space-y-4">
+      <section aria-label="NDA preview" className="flex flex-col gap-4 lg:min-h-0">
         <div className="flex items-center justify-between gap-4 print:hidden">
           <h2 className="text-lg font-semibold text-navy">Preview</h2>
           <div className="flex items-center gap-3">
@@ -76,13 +85,15 @@ export default function NdaBuilder({ standardTerms }: { standardTerms: string })
             </button>
           </div>
         </div>
-        {complete && !confirmed && <NdaSummary values={values} onConfirm={() => setConfirmed(true)} />}
-        <article className="nda-doc rounded-lg border border-slate-200 bg-white p-10 shadow-sm print:border-0 print:p-0 print:shadow-none">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
-        </article>
-        <p className="hidden text-xs italic text-slate-600 print:block">
-          Draft prepared with Pre-Legal. This draft is a starting point for review by a lawyer. It is not legal advice.
-        </p>
+        <div ref={documentRef} className="space-y-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto print:overflow-visible">
+          {showSummary && <NdaSummary values={values} onConfirm={() => setConfirmed(true)} />}
+          <article className="nda-doc rounded-lg border border-slate-200 bg-white p-10 shadow-sm print:border-0 print:p-0 print:shadow-none">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
+          </article>
+          <p className="hidden text-xs italic text-slate-600 print:block">
+            Draft prepared with Pre-Legal. This draft is a starting point for review by a lawyer. It is not legal advice.
+          </p>
+        </div>
       </section>
     </div>
   );

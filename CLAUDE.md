@@ -61,6 +61,14 @@ are set up. Update this section after every ticket.
   clearly odd values once, bans internal names in replies, and sets a warmer
   tone; so does the greeting in `NdaBuilder.tsx`. Keep prompt examples free
   of concrete names and dates: the model copies them into replies.
+- PL-11: chat restyled as a messaging app (bubbles, growing textarea where
+  Enter sends and Shift+Enter adds a line, icon Send button, typing dots).
+  While waiting the box is `readOnly`, never `disabled`: browsers move focus
+  off a disabled field, so the cursor would be lost after every answer.
+  On `lg` screens `main` is `h-dvh` with `flex-none` (a flex item otherwise
+  grows to its content) and the grid uses `grid-rows-1` plus `min-h-0`, so
+  the chat and the document each scroll inside; print styles undo the
+  height limit. jsdom has no layout, so check layout in a real browser.
 
 ## Development process
 - Read the ticket with the Atlassian tools before starting.

@@ -177,13 +177,46 @@ describe("NdaBuilder", () => {
     const { send } = setup();
     await send("Acme Inc.");
 
-    expect(screen.getByText("Thinking...")).toBeInTheDocument();
-    expect(screen.getByLabelText("Your message")).toBeDisabled();
+    expect(screen.getByText("Assistant is typing")).toBeInTheDocument();
+    expect(screen.getByLabelText("Your message")).toHaveAttribute("readonly");
     expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
 
     answer(Response.json({ reply: "Thanks.", fields: emptyValues }));
     expect(await screen.findByText("Thanks.")).toBeInTheDocument();
-    expect(screen.getByLabelText("Your message")).toBeEnabled();
+    expect(screen.queryByText("Assistant is typing")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Your message")).not.toHaveAttribute("readonly");
+  });
+
+  // Browsers move focus off a disabled field, so the box must never be disabled (checked above)
+  // and clicking Send must not leave focus on the button.
+  it.each(["clicking Send", "pressing Enter"])("keeps the cursor in the message box after %s", async (how) => {
+    mockChat({ reply: "Thanks.", fields: emptyValues });
+    const { user, send } = setup();
+    const box = screen.getByLabelText("Your message");
+    if (how === "clicking Send") await send("Acme Inc.");
+    else await user.type(box, "Acme Inc.{Enter}");
+    await screen.findByText("Thanks.");
+    expect(box).toHaveFocus();
+    expect(box).toHaveValue("");
+  });
+
+  it.each([
+    ["with a mouse", true],
+    ["on a touch screen", false],
+  ])("starts in the message box only %s", (_, fine) => {
+    vi.stubGlobal("matchMedia", (query: string) => ({ matches: query === "(pointer: fine)" && fine }));
+    setup();
+    expect(document.activeElement === screen.getByLabelText("Your message")).toBe(fine);
+  });
+
+  it("starts a new line with Shift+Enter instead of sending", async () => {
+    const fetchMock = mockChat({ reply: "Thanks.", fields: emptyValues });
+    const { user } = setup();
+    await user.type(screen.getByLabelText("Your message"), "1 Main St{Shift>}{Enter}{/Shift}Springfield");
+    expect(fetchMock).not.toHaveBeenCalled();
+    await user.keyboard("{Enter}");
+    await screen.findByText("Thanks.");
+    expect(sentBody(fetchMock, 0).messages[1]).toEqual({ role: "user", content: "1 Main St\nSpringfield" });
   });
 
   it("does not send a blank message", async () => {

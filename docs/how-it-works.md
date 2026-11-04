@@ -6,7 +6,9 @@ opens Pre-Legal to the moment they download a Mutual NDA as a PDF.
 ## The pieces
 
 - **The browser app** shows the chat on the left and a live preview of the
-  agreement on the right.
+  agreement on the right. On a wide screen the page fits the window and
+  each side scrolls on its own, so both stay visible throughout; on a narrow
+  screen the chat comes first and the agreement below it.
 - **The server** runs in the same Docker container. It hands out the
   agreement's standard terms and passes chat messages to the AI.
 - **The AI** is the gpt-oss-120b model, reached through OpenRouter and run
@@ -20,7 +22,21 @@ The user signs in with a name and email (a placeholder: there is no
 password). The browser then loads the standard terms from the server and
 shows an empty agreement with bracketed placeholders such as
 "[Party 1 Company]". The chat opens with a fixed greeting that asks for the
-first party's name. Nothing has been sent to the AI yet.
+first party's name, with the cursor already in the message box. Nothing has
+been sent to the AI yet.
+
+## The chat box
+
+Messages appear as bubbles: the user's on the right, the assistant's on the
+left. The message box grows as the user types, up to a few lines. Enter
+sends the message and Shift+Enter starts a new line, which helps with
+addresses.
+
+While the AI is replying, three moving dots show that the assistant is
+typing, and the box is locked so the message can't be changed or sent
+twice. The cursor stays in the box throughout, whether the user pressed
+Enter or clicked the send button, so they can type the next answer as soon
+as the reply arrives without clicking.
 
 ## 2. Each message
 
@@ -87,7 +103,9 @@ The instructions tell the AI to:
 ## 4. Checking the details
 
 Once every required detail is collected, a "Check the details" box appears
-above the preview. The app builds this summary itself from the collected
+above the preview, and the agreement side scrolls back to the top so the
+user sees it. The Preview title and the Download PDF button stay at the top
+of that side while the agreement scrolls. The app builds this summary itself from the collected
 details, so it always matches what will be printed. The AI only asks the
 user to check it.
 
