@@ -9,7 +9,7 @@ const ada = { id: 1, name: "Ada Lovelace", email: "ada@example.com" };
 const documents = [
   { id: "mutual-nda", name: "Mutual Non-Disclosure Agreement", description: "Share secrets.", version: "1.0", files: [] },
 ];
-const summary = { id: 7, document: "mutual-nda", parties: ["Acme Inc.", "Globex LLC"], updatedAt: "2026-11-04T12:00:00.000Z" };
+const summary = { id: 7, document: "mutual-nda", title: null as string | null, parties: ["Acme Inc.", "Globex LLC"], updatedAt: "2026-11-04T12:00:00.000Z" };
 const draft = {
   id: 7,
   document: "mutual-nda",
@@ -304,6 +304,237 @@ describe("the sidebar", () => {
 
     await user.keyboard("{Escape}");
     await waitFor(() => expect(menu).toHaveAttribute("aria-expanded", "false"));
+  });
+});
+
+describe("renaming and deleting drafts", () => {
+  const sidebar = () => within(screen.getByRole("navigation", { name: "Your documents" }));
+  const NDA = "Mutual Non-Disclosure Agreement";
+  const openDraftButton = (name = NDA) => sidebar().getByRole("button", { name: new RegExp(`^${name}`) });
+  const calls = (fetchMock: ReturnType<typeof mockBackend>, method: string) =>
+    fetchMock.mock.calls.filter(([, init]) => init?.method === method);
+
+  async function openMenu(name = NDA) {
+    const user = userEvent.setup();
+    await screen.findByText(OPENING);
+    await user.click(sidebar().getByRole("button", { name: `Options for ${name}` }));
+    return user;
+  }
+
+  function mockRename(drafts = [summary]) {
+    return mockBackend({
+      drafts,
+      routes: {
+        "/api/drafts/7": async (init) => {
+          if (init?.method !== "PATCH") return Response.json(draft);
+          return Response.json({ ...summary, title: JSON.parse(String(init.body)).title });
+        },
+      },
+    });
+  }
+
+  function mockDelete(status = 204) {
+    return mockBackend({
+      drafts: [summary, { ...summary, id: 8, title: "Other deal" }],
+      routes: {
+        "/api/drafts/7": (init) => (init?.method === "DELETE" ? new Response(null, { status }) : Response.json(draft)),
+      },
+    });
+  }
+
+  it("shows a custom name instead of the agreement's name, keeping the details", async () => {
+    mockBackend({ drafts: [{ ...summary, title: "Acme deal" }] });
+    render(<App />);
+    await screen.findByText(OPENING);
+    const item = sidebar().getByRole("listitem");
+    expect(item).toHaveTextContent("Acme deal");
+    expect(item).not.toHaveTextContent(NDA);
+    expect(item).toHaveTextContent(/Acme Inc\. and Globex LLC, Nov \d/);
+  });
+
+  it("renames with Enter, keeps the draft's place and returns focus to the menu button", async () => {
+    const other = { ...summary, id: 8, title: "Top draft" };
+    const fetchMock = mockRename([other, summary]);
+    render(<App />);
+    const user = await openMenu();
+    await user.click(screen.getByRole("button", { name: "Rename" }));
+    const input = screen.getByRole("textbox", { name: `New name for ${NDA}` });
+    expect(input).toHaveFocus();
+    expect(input).toHaveValue(NDA);
+
+    await user.clear(input);
+    await user.type(input, "  Acme deal {Enter}");
+    const menuButton = await sidebar().findByRole("button", { name: "Options for Acme deal" });
+    expect(menuButton).toHaveFocus();
+    const items = sidebar().getAllByRole("listitem");
+    expect(items[0]).toHaveTextContent("Top draft");
+    expect(items[1]).toHaveTextContent("Acme deal");
+    const renames = calls(fetchMock, "PATCH");
+    expect(renames).toHaveLength(1);
+    expect(renames[0][1]?.body).toBe(JSON.stringify({ title: "Acme deal" }));
+  });
+
+  it("renames when clicking elsewhere", async () => {
+    const fetchMock = mockRename();
+    render(<App />);
+    const user = await openMenu();
+    await user.click(screen.getByRole("button", { name: "Rename" }));
+    const input = screen.getByRole("textbox", { name: `New name for ${NDA}` });
+    await user.clear(input);
+    await user.type(input, "Acme deal");
+    await user.click(screen.getByRole("log"));
+    expect(await sidebar().findByRole("button", { name: "Options for Acme deal" })).toBeInTheDocument();
+    expect(calls(fetchMock, "PATCH")).toHaveLength(1);
+  });
+
+  it.each([
+    ["Escape", "Changed{Escape}"],
+    ["an empty name", "{Enter}"],
+  ])("changes nothing with %s", async (_, keys) => {
+    const fetchMock = mockRename();
+    render(<App />);
+    const user = await openMenu();
+    await user.click(screen.getByRole("button", { name: "Rename" }));
+    const input = screen.getByRole("textbox", { name: `New name for ${NDA}` });
+    await user.clear(input);
+    await user.type(input, keys);
+    expect(await sidebar().findByRole("button", { name: `Options for ${NDA}` })).toHaveFocus();
+    expect(calls(fetchMock, "PATCH")).toHaveLength(0);
+  });
+
+  it("does not store the current name when it is left unchanged", async () => {
+    const fetchMock = mockRename();
+    render(<App />);
+    const user = await openMenu();
+    await user.click(screen.getByRole("button", { name: "Rename" }));
+    await user.keyboard("{Enter}");
+    const menuButton = await sidebar().findByRole("button", { name: `Options for ${NDA}` });
+    expect(menuButton).toHaveFocus();
+    expect(menuButton).toHaveAttribute("aria-expanded", "false");
+    expect(calls(fetchMock, "PATCH")).toHaveLength(0);
+  });
+
+  it("keeps the old name and says so when renaming fails", async () => {
+    mockBackend({
+      drafts: [summary],
+      routes: { "/api/drafts/7": () => new Response(null, { status: 500 }) },
+    });
+    render(<App />);
+    const user = await openMenu();
+    await user.click(screen.getByRole("button", { name: "Rename" }));
+    await user.keyboard("Acme deal{Enter}");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not rename");
+    expect(openDraftButton()).toBeInTheDocument();
+  });
+
+  it("closes the menu with Escape without closing the drawer", async () => {
+    mockRename();
+    render(<App />);
+    await screen.findByText(OPENING);
+    const user = userEvent.setup();
+    const drawer = screen.getByRole("button", { name: "Open menu" });
+    await user.click(drawer);
+    await user.click(sidebar().getByRole("button", { name: `Options for ${NDA}` }));
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("button", { name: "Rename" })).not.toBeInTheDocument();
+    expect(drawer).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("closes the menu when clicking elsewhere", async () => {
+    mockRename();
+    render(<App />);
+    const user = await openMenu();
+    await user.click(screen.getByRole("log"));
+    expect(screen.queryByRole("button", { name: "Rename" })).not.toBeInTheDocument();
+  });
+
+  it("deletes only after confirming, and keeps the current view for another draft", async () => {
+    const fetchMock = mockDelete();
+    render(<App />);
+    const user = await openMenu();
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    const dialog = within(screen.getByRole("alertdialog", { name: "Delete this document?" }));
+    expect(screen.getByRole("alertdialog")).toHaveTextContent("can't be undone");
+    expect(calls(fetchMock, "DELETE")).toHaveLength(0);
+
+    await user.click(dialog.getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(sidebar().getAllByRole("listitem")).toHaveLength(1));
+    expect(sidebar().getByRole("listitem")).toHaveTextContent("Other deal");
+    expect(calls(fetchMock, "DELETE")).toHaveLength(1);
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("log")).toHaveTextContent(OPENING);
+  });
+
+  it("keeps the draft when the confirmation is cancelled", async () => {
+    const fetchMock = mockDelete();
+    render(<App />);
+    const user = await openMenu();
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(calls(fetchMock, "DELETE")).toHaveLength(0);
+    expect(sidebar().getByRole("button", { name: `Options for ${NDA}` })).toHaveFocus();
+    expect(openDraftButton()).toBeInTheDocument();
+  });
+
+  it("starts a fresh chat after deleting the open draft", async () => {
+    mockDelete();
+    render(<App />);
+    await screen.findByText(OPENING);
+    await userEvent.setup().click(openDraftButton());
+    await screen.findByText("Saved question?");
+
+    const user = await openMenu();
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(sidebar().getAllByRole("listitem")).toHaveLength(1));
+    expect(screen.queryByText("Saved question?")).not.toBeInTheDocument();
+    expect(screen.getByRole("log")).toHaveTextContent(OPENING);
+    expect(document.title).toBe("Pre-Legal");
+  });
+
+  it("keeps the draft in the list and says so when deleting fails", async () => {
+    mockDelete(500);
+    render(<App />);
+    const user = await openMenu();
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Delete" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not delete");
+    expect(sidebar().getAllByRole("listitem")).toHaveLength(2);
+  });
+
+  it("deletes after a save still running, so the draft does not come back", async () => {
+    let finishSave: (res: Response) => void = () => {};
+    const order: string[] = [];
+    mockBackend({
+      drafts: [summary],
+      routes: {
+        "/api/chat": () => Response.json({ reply: "Newest reply.", fields: emptyValues }),
+        "/api/drafts/7": (init) => {
+          if (init?.method) order.push(init.method);
+          if (init?.method === "PUT") return new Promise<Response>((resolve) => (finishSave = resolve));
+          if (init?.method === "DELETE") return new Response(null, { status: 204 });
+          return Response.json(draft);
+        },
+      },
+    });
+    render(<App />);
+    await screen.findByText(OPENING);
+    const user = userEvent.setup();
+    await user.click(openDraftButton());
+    await screen.findByText("Saved question?");
+    await user.type(screen.getByLabelText("Your message"), "Acme{Enter}");
+    await screen.findByText("Newest reply.");
+
+    await user.click(sidebar().getByRole("button", { name: `Options for ${NDA}` }));
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Delete" }));
+    await new Promise((resolve) => setTimeout(resolve));
+    expect(order).toEqual(["PUT"]);
+
+    finishSave(Response.json(summary));
+    await waitFor(() => expect(order).toEqual(["PUT", "DELETE"]));
+    await waitFor(() => expect(sidebar().queryAllByRole("listitem")).toHaveLength(0));
   });
 });
 

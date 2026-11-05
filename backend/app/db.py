@@ -19,10 +19,12 @@ CREATE TABLE sessions (
     expires_at TEXT NOT NULL
 );
 -- messages and fields are JSON: fields differ per document and are never queried inside.
+-- title is NULL until the user renames the draft.
 CREATE TABLE drafts (
     id INTEGER PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users (id),
     document_id TEXT NOT NULL,
+    title TEXT,
     messages TEXT NOT NULL,
     start INTEGER NOT NULL,
     fields TEXT NOT NULL,
@@ -31,7 +33,7 @@ CREATE TABLE drafts (
 );
 """
 
-DRAFT_COLUMNS = "id, document_id, messages, start, fields, confirmed, updated_at"
+DRAFT_COLUMNS = "id, document_id, title, messages, start, fields, confirmed, updated_at"
 
 
 def reset(path: Path) -> None:
@@ -100,6 +102,7 @@ def _draft(row: sqlite3.Row) -> dict:
     return {
         "id": row["id"],
         "document": row["document_id"],
+        "title": row["title"],
         "messages": json.loads(row["messages"]),
         "start": row["start"],
         "fields": json.loads(row["fields"]),
@@ -148,3 +151,20 @@ def update_draft(
             (json.dumps(messages), start, json.dumps(fields), confirmed, timestamp(), draft_id, user_id),
         ).fetchone()
     return _draft(row) if row else None
+
+
+def rename_draft(path: Path, user_id: int, draft_id: int, title: str) -> dict | None:
+    """Leaves updated_at alone: that time means the last change to the agreement itself."""
+    with closing(_connect(path)) as conn, conn:
+        row = conn.execute(
+            f"UPDATE drafts SET title = ? WHERE id = ? AND user_id = ? RETURNING {DRAFT_COLUMNS}",
+            (title, draft_id, user_id),
+        ).fetchone()
+    return _draft(row) if row else None
+
+
+def delete_draft(path: Path, user_id: int, draft_id: int) -> bool:
+    """Returns whether a draft was deleted."""
+    with closing(_connect(path)) as conn, conn:
+        cursor = conn.execute("DELETE FROM drafts WHERE id = ? AND user_id = ?", (draft_id, user_id))
+    return cursor.rowcount > 0
