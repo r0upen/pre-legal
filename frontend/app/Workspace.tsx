@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { getDocuments, getDraft, listDrafts, logout, type Draft, type DraftSummary, type User } from "@/lib/api";
+import { deleteDraft, getDocuments, getDraft, listDrafts, logout, renameDraft, type Draft, type DraftSummary, type User } from "@/lib/api";
 import type { DocumentSpec } from "@/lib/documents";
 import DocumentBuilder from "./DocumentBuilder";
 import Sidebar from "./Sidebar";
@@ -69,6 +69,31 @@ export default function Workspace({ user, onLoggedOut }: { user: User; onLoggedO
     setDrafts((current) => [summary, ...current.filter((d) => d.id !== summary.id)]);
   }
 
+  // A rename is not a change to the agreement, so the draft keeps its place in the list.
+  async function handleRename(id: number, title: string) {
+    setProblem("");
+    try {
+      const summary = await renameDraft(id, title);
+      setDrafts((current) => current.map((d) => (d.id === id ? summary : d)));
+    } catch {
+      setProblem("Could not rename that document. Try again.");
+    }
+  }
+
+  async function handleDelete(id: number) {
+    // Cancels a click still opening this draft, which would otherwise show it after it is gone.
+    lastOpen.current += 1;
+    // Leave the open draft first, so no new message can be sent to it and a late reply is dropped.
+    if (id === activeId) show(null);
+    setProblem("");
+    try {
+      await deleteDraft(id);
+      setDrafts((current) => current.filter((d) => d.id !== id));
+    } catch {
+      setProblem("Could not delete that document. Try again.");
+    }
+  }
+
   async function handleLogout() {
     try {
       await logout();
@@ -89,6 +114,8 @@ export default function Workspace({ user, onLoggedOut }: { user: User; onLoggedO
         problem={problem}
         onNew={newDocument}
         onOpen={openDraft}
+        onRename={handleRename}
+        onDelete={handleDelete}
         onLogout={handleLogout}
       />
       {menuOpen && (

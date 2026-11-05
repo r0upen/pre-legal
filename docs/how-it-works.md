@@ -226,6 +226,20 @@ confirmed can be downloaded straight away. **New document** starts a fresh
 chat. Reloading the page also starts a fresh chat, with every draft still in
 the sidebar.
 
+Each sidebar item has a menu (the three dots) with **Rename** and **Delete**.
+Rename turns the name into a text box: Enter or clicking elsewhere saves it,
+Escape cancels, and an empty or unchanged name changes nothing. The new name
+replaces the agreement's name in the sidebar only, with the parties and date
+still below it. Renaming does not count as a change to the agreement, so the
+draft keeps its place and date. Saves never touch the name, and names can be up
+to 100 characters.
+
+Delete first asks for confirmation, because it cannot be undone. The draft and
+its conversation are then permanently removed. If it was the open draft, the
+user lands on a fresh chat straight away. Both actions wait for any save still
+running, so a late save cannot undo them, and nobody can rename or delete
+another user's drafts.
+
 If a save fails, the user sees a warning and keeps working: every save carries
 the whole draft, so the next one catches up. If the user moves to another
 document while the AI is still replying, that message and its reply are
@@ -241,7 +255,9 @@ Pre-Legal:
 - **Two tabs on one draft.** Each tab holds its own copy of a draft and every
   save replaces the stored one, so with the same draft open in two tabs or on
   two devices the last save wins and the other tab's newer answers are lost.
-  Saves need a version check and a message when there is a conflict.
+  Saves need a version check and a message when there is a conflict. A draft
+  deleted in one tab also stays listed in the other until it is reloaded; there,
+  opening or deleting it shows an error and saving it shows the save warning.
 - **Secure cookie over HTTPS.** The session cookie does not yet require HTTPS,
   because the app runs on plain `http://localhost`. Once it is deployed over
   HTTPS the cookie must be marked Secure, or it could be sent unencrypted.

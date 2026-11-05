@@ -3,7 +3,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Path, Request
-from pydantic import BaseModel, Field, ValidationError, model_validator
+from pydantic import BaseModel, Field, StringConstraints, ValidationError, model_validator
 
 from app import db
 from app.auth import CurrentUser
@@ -39,6 +39,10 @@ class DraftUpdate(DraftState):
     confirmed: bool
 
 
+class DraftRename(BaseModel):
+    title: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
+
+
 class Draft(DraftState):
     id: int
     document: DocumentId
@@ -51,6 +55,7 @@ class DraftSummary(BaseModel):
 
     id: int
     document: DocumentId
+    title: str | None  # None until the user renames the draft
     parties: list[str]
     updatedAt: str
 
@@ -67,6 +72,7 @@ def _summary(draft: dict) -> DraftSummary:
     return DraftSummary(
         id=draft["id"],
         document=draft["document"],
+        title=draft["title"],
         parties=[company for company in companies if company],
         updatedAt=draft["updatedAt"],
     )
@@ -104,4 +110,22 @@ def update_draft(draft_id: DraftId, body: DraftUpdate, user: CurrentUser, reques
     if not current:
         raise HTTPException(404, "Draft not found.")
     fields = _checked_fields(current["document"], body.fields)
-    return _summary(db.update_draft(path, user.id, draft_id, body.message_dicts(), body.start, fields, body.confirmed))
+    updated = db.update_draft(path, user.id, draft_id, body.message_dicts(), body.start, fields, body.confirmed)
+    # It can be deleted from another tab between the two queries.
+    if not updated:
+        raise HTTPException(404, "Draft not found.")
+    return _summary(updated)
+
+
+@router.patch("/{draft_id}")
+def rename_draft(draft_id: DraftId, body: DraftRename, user: CurrentUser, request: Request) -> DraftSummary:
+    draft = db.rename_draft(request.app.state.db_path, user.id, draft_id, body.title)
+    if not draft:
+        raise HTTPException(404, "Draft not found.")
+    return _summary(draft)
+
+
+@router.delete("/{draft_id}", status_code=204)
+def delete_draft(draft_id: DraftId, user: CurrentUser, request: Request) -> None:
+    if not db.delete_draft(request.app.state.db_path, user.id, draft_id):
+        raise HTTPException(404, "Draft not found.")

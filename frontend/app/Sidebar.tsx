@@ -1,5 +1,6 @@
 import type { DraftSummary, User } from "@/lib/api";
 import type { DocumentSpec } from "@/lib/documents";
+import DraftItem from "./DraftItem";
 
 type Props = {
   user: User;
@@ -11,16 +12,12 @@ type Props = {
   problem: string;
   onNew: () => void;
   onOpen: (id: number) => void;
+  onRename: (id: number, title: string) => Promise<void>;
+  onDelete: (id: number) => void;
   onLogout: () => void;
 };
 
-// The parties known so far and the day of the last change, such as "Acme Inc. and Globex LLC, Nov 4".
-function details(draft: DraftSummary): string {
-  const day = new Date(draft.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-  return draft.parties.length ? `${draft.parties.join(" and ")}, ${day}` : day;
-}
-
-export default function Sidebar({ user, documents, drafts, activeId, open, problem, onNew, onOpen, onLogout }: Props) {
+export default function Sidebar({ user, documents, drafts, activeId, open, problem, onNew, onOpen, onRename, onDelete, onLogout }: Props) {
   return (
     // invisible, not only moved away: the keyboard must not reach a closed drawer's buttons.
     <nav
@@ -51,19 +48,15 @@ export default function Sidebar({ user, documents, drafts, activeId, open, probl
         ) : (
           <ul className="space-y-0.5">
             {drafts.map((draft) => (
-              <li key={draft.id}>
-                <button
-                  type="button"
-                  aria-current={draft.id === activeId ? "true" : undefined}
-                  onClick={() => onOpen(draft.id)}
-                  className={`w-full rounded-md px-2 py-2 text-left hover:bg-slate-100 ${draft.id === activeId ? "bg-slate-100" : ""}`}
-                >
-                  <span className="block truncate text-sm font-medium text-navy">
-                    {documents?.find((d) => d.id === draft.document)?.name ?? draft.document}
-                  </span>
-                  <span className="block truncate text-xs text-slate-500">{details(draft)}</span>
-                </button>
-              </li>
+              <DraftItem
+                key={draft.id}
+                draft={draft}
+                documentName={documents?.find((d) => d.id === draft.document)?.name ?? draft.document}
+                active={draft.id === activeId}
+                onOpen={onOpen}
+                onRename={onRename}
+                onDelete={onDelete}
+              />
             ))}
           </ul>
         )}

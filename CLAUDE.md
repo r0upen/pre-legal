@@ -96,6 +96,13 @@ are set up. Update this section after every ticket.
   leaving a draft is dropped, not saved. The notice is one footer in `App.tsx`;
   the PDF's copy sits above the agreement's title. The sidebar is a drawer
   below `xl`. Known limitations before real users are in `docs/how-it-works.md`.
+- PL-13: each sidebar item (`DraftItem.tsx`) has a menu with Rename (inline
+  input) and Delete (`ConfirmDialog.tsx`, a native `<dialog>`; jsdom lacks
+  `showModal`, so `vitest.setup.ts` stubs it). `drafts.title` is NULL until
+  renamed and shows instead of the agreement's name in the sidebar only. `PATCH`
+  leaves `updated_at` alone, and autosave never writes `title`. Rename and delete
+  run in the save queue (`inTurn` in `lib/api.ts`), so a running save cannot fail
+  or re-list a deleted draft. Deleting the open draft shows a fresh chat first.
 
 ## Development process
 - Read the ticket with the Atlassian tools before starting.

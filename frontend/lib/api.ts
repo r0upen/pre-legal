@@ -29,7 +29,7 @@ async function request(path: string, init?: RequestInit): Promise<Response> {
   return res;
 }
 
-async function send<T>(method: "POST" | "PUT", path: string, body: object): Promise<T> {
+async function send<T>(method: "POST" | "PUT" | "PATCH", path: string, body: object): Promise<T> {
   const res = await request(path, {
     method,
     headers: { "Content-Type": "application/json" },
@@ -89,8 +89,8 @@ export function sendChat(document: string, messages: ChatMessage[], fields: DocV
 // What is saved for a draft: everything needed to reopen it where the user left off.
 export type DraftState = { messages: ChatMessage[]; start: number; fields: DocValues; confirmed: boolean };
 export type Draft = DraftState & { id: number; document: string; updatedAt: string };
-// One sidebar item: parties holds the company names known so far.
-export type DraftSummary = { id: number; document: string; parties: string[]; updatedAt: string };
+// One sidebar item: title is null until the user renames it; parties holds the company names known so far.
+export type DraftSummary = { id: number; document: string; title: string | null; parties: string[]; updatedAt: string };
 
 export async function listDrafts(): Promise<DraftSummary[]> {
   return (await request("/api/drafts")).json();
@@ -99,6 +99,13 @@ export async function listDrafts(): Promise<DraftSummary[]> {
 // Saves run one at a time, so an older one can never land after a newer one. Reading a draft waits
 // for them, or it could return a copy older than what the user just saw.
 let saves: Promise<unknown> = Promise.resolve();
+
+function inTurn<T>(work: () => Promise<T>): Promise<T> {
+  const done = saves.then(work);
+  // A failed save must not stop the ones after it; the caller still sees the failure through done.
+  saves = done.catch(() => {});
+  return done;
+}
 
 export async function getDraft(id: number): Promise<Draft> {
   await saves;
@@ -110,8 +117,16 @@ export function createDraft(document: string, messages: ChatMessage[], start: nu
 }
 
 export function updateDraft(id: number, state: DraftState): Promise<DraftSummary> {
-  const saved = saves.then(() => send<DraftSummary>("PUT", `/api/drafts/${id}`, state));
-  // A failed save must not stop the ones after it; the caller still sees the failure through saved.
-  saves = saved.catch(() => {});
-  return saved;
+  return inTurn(() => send("PUT", `/api/drafts/${id}`, state));
+}
+
+export function renameDraft(id: number, title: string): Promise<DraftSummary> {
+  return inTurn(() => send("PATCH", `/api/drafts/${id}`, { title }));
+}
+
+// In turn too: a save still running would otherwise fail, or list the draft again, after it is gone.
+export function deleteDraft(id: number): Promise<void> {
+  return inTurn(async () => {
+    await request(`/api/drafts/${id}`, { method: "DELETE" });
+  });
 }
