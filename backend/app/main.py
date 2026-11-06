@@ -16,6 +16,7 @@ from pydantic import AfterValidator, BaseModel, Field, model_validator
 from app import auth, db, drafts
 from app.chat import ChatMessage, ChatTurn, ChooseTurn, chat_turn, choose_turn
 from app.documents import CATALOG, DocumentId, fields_model, standard_terms
+from app.stages import Stage
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +57,7 @@ class ChatRequest(BaseModel):
     messages: Messages
     fields: dict  # checked against the document's own fields below
     today: date  # the user's local date, for relative dates like "next Monday"
+    stage: Stage  # where the interview was before this message
 
     @model_validator(mode="after")
     def fields_match_document(self):
@@ -97,9 +99,9 @@ def choose(body: ChooseRequest) -> ChooseTurn:
 
 @app.post("/api/chat", dependencies=[Depends(auth.current_user)])
 def chat(body: ChatRequest) -> ChatTurn:
-    """One turn of a document interview: the assistant's reply plus the merged fields."""
+    """One turn of a document interview: the assistant's reply, the merged fields and the new stage."""
     try:
-        return chat_turn(body.document, body.messages, body.fields, body.today)
+        return chat_turn(body.document, body.messages, body.fields, body.today, body.stage)
     except Exception as exc:
         raise _assistant_unavailable(exc)
 

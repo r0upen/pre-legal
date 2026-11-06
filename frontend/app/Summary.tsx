@@ -2,9 +2,12 @@ import type { SummaryRow } from "@/lib/documents";
 
 const badge = "rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600";
 
-// Shown once every detail is collected: the user checks the values and confirms them
-// before Download PDF is enabled. Built from the fields, not written by the AI.
-export default function Summary({ rows, onConfirm }: { rows: SummaryRow[]; onConfirm: () => void }) {
+// Shown once the changes question is answered: the user checks the values and confirms them
+// before Download PDF is enabled. Built from the fields, not written by the AI. Disabled while
+// a reply is on its way, since that reply could change the details.
+type Props = { rows: SummaryRow[]; onConfirm: () => void; disabled: boolean };
+
+export default function Summary({ rows, onConfirm, disabled }: Props) {
   return (
     <section aria-label="Check the details" className="rounded-lg border border-teal bg-white p-4 shadow-sm print:hidden">
       <h3 className="font-semibold text-navy">Check the details</h3>
@@ -29,7 +32,8 @@ export default function Summary({ rows, onConfirm }: { rows: SummaryRow[]; onCon
       <button
         type="button"
         onClick={onConfirm}
-        className="mt-4 rounded-md bg-teal px-4 py-2 text-sm font-medium text-white hover:bg-navy"
+        disabled={disabled}
+        className="mt-4 rounded-md bg-teal px-4 py-2 text-sm font-medium text-white hover:bg-navy disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-teal"
       >
         Confirm details
       </button>

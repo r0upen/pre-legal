@@ -6,7 +6,6 @@ import {
   buildNda,
   emptyValues,
   formatDate,
-  isComplete,
   stripSpans,
   summarize,
   type NdaValues,
@@ -88,34 +87,6 @@ describe("buildCoverPage", () => {
   it("says None when there are no modifications", () => {
     expect(buildCoverPage(filled)).toContain("### MNDA Modifications\n\nNone.");
     expect(buildCoverPage({ ...filled, modifications: "Section 8 is deleted." })).toContain("Section 8 is deleted.");
-  });
-});
-
-describe("isComplete", () => {
-  it("is false until anything is collected and true once everything required is", () => {
-    expect(isComplete(emptyValues)).toBe(false);
-    expect(isComplete(filled)).toBe(true);
-  });
-
-  it.each<[string, Partial<NdaValues>]>([
-    ["purpose", { purpose: null }],
-    ["a blank governing law", { governingLaw: "  " }],
-    ["jurisdiction", { jurisdiction: null }],
-    ["the effective date", { effectiveDate: null }],
-    ["an invalid effective date", { effectiveDate: "next Monday" }],
-    ["the MNDA term choice", { mndaExpires: null }],
-    ["the MNDA term years", { mndaTermYears: null }],
-    ["the confidentiality choice", { confidentialityPerpetual: null }],
-    ["the confidentiality years", { confidentialityYears: null }],
-    ["a party 1 detail", { party1: { ...filled.party1, noticeAddress: null } }],
-    ["a party 2 detail", { party2: { ...filled.party2, title: null } }],
-  ])("is false without %s", (_, missing) => {
-    expect(isComplete({ ...filled, ...missing })).toBe(false);
-  });
-
-  it("needs no years for a term that continues or is perpetual", () => {
-    expect(isComplete({ ...filled, mndaExpires: false, mndaTermYears: null })).toBe(true);
-    expect(isComplete({ ...filled, confidentialityPerpetual: true, confidentialityYears: null })).toBe(true);
   });
 });
 

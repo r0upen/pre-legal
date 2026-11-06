@@ -9,6 +9,7 @@ from app import db
 from app.auth import CurrentUser
 from app.chat import ChatMessage
 from app.documents import DocumentId, fields_model
+from app.stages import Stage
 
 # Room for a full choosing chat and a full interview (each capped at 200 messages in main.py).
 SavedMessages = Annotated[list[ChatMessage], Field(min_length=1, max_length=500)]
@@ -36,7 +37,7 @@ class NewDraft(DraftState):
 
 
 class DraftUpdate(DraftState):
-    confirmed: bool
+    stage: Stage
 
 
 class DraftRename(BaseModel):
@@ -46,7 +47,7 @@ class DraftRename(BaseModel):
 class Draft(DraftState):
     id: int
     document: DocumentId
-    confirmed: bool
+    stage: Stage
     updatedAt: str
 
 
@@ -110,7 +111,7 @@ def update_draft(draft_id: DraftId, body: DraftUpdate, user: CurrentUser, reques
     if not current:
         raise HTTPException(404, "Draft not found.")
     fields = _checked_fields(current["document"], body.fields)
-    updated = db.update_draft(path, user.id, draft_id, body.message_dicts(), body.start, fields, body.confirmed)
+    updated = db.update_draft(path, user.id, draft_id, body.message_dicts(), body.start, fields, body.stage)
     # It can be deleted from another tab between the two queries.
     if not updated:
         raise HTTPException(404, "Draft not found.")

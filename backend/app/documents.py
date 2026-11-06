@@ -56,3 +56,24 @@ def routine_model(doc_id: str) -> type[BaseModel] | None:
     asked for every field re-copies the long default wording each turn, and alters it."""
     routine = [] if doc_id == NDA else spec_fields(doc_id, routine=True)
     return _model("ChangedTerms", routine) if routine else None
+
+
+def _party_complete(party: Party) -> bool:
+    return all(party.model_dump().values())
+
+
+def is_complete(doc_id: str, fields: BaseModel) -> bool:
+    """The one rule for "every required detail is collected". Blank or invalid values are already
+    None (see fields.py). The NDA's modifications are left out: the changes question comes after."""
+    if not (_party_complete(fields.party1) and _party_complete(fields.party2)):
+        return False
+    if doc_id == NDA:
+        return bool(
+            fields.purpose
+            and fields.effectiveDate
+            and fields.governingLaw
+            and fields.jurisdiction
+            and (fields.mndaExpires is False or (fields.mndaExpires and fields.mndaTermYears))
+            and (fields.confidentialityPerpetual or (fields.confidentialityPerpetual is False and fields.confidentialityYears))
+        )
+    return all(getattr(fields, f["key"]) for f in DOCUMENTS[doc_id]["coverPage"]["fields"])

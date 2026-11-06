@@ -38,7 +38,7 @@ function mockBackend(...turns: (object | null)[]) {
     if (id) return new Response(readFileSync(path.join(TEMPLATES, spec(id).files.at(-1)!), "utf-8"));
     if (url.startsWith("/api/drafts")) return Response.json(summary);
     const turn = turns.shift();
-    return turn ? Response.json(turn) : new Response(null, { status: 502 });
+    return turn ? Response.json({ stage: "collecting", ...turn }) : new Response(null, { status: 502 });
   });
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
@@ -171,7 +171,7 @@ describe("choosing a document", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) =>
-        url.startsWith("/api/templates/") ? new Response(null, { status: 500 }) : Response.json({ reply: "Please confirm.", fields: complete }),
+        url.startsWith("/api/templates/") ? new Response(null, { status: 500 }) : Response.json({ reply: "Please confirm.", fields: complete, stage: "review" }),
       ),
     );
     const { user, preview, send } = setup();
@@ -203,7 +203,7 @@ describe("choosing a document", () => {
       chosenCourts: "courts located in New Castle, DE",
       technicalSupport: "24/7 phone support",
     };
-    mockBackend({ reply: "Please check the summary.", fields });
+    mockBackend({ reply: "Please check the summary.", fields, stage: "review" });
     const { send, start } = setup();
     await start("Cloud Service Agreement");
     await send("Everything else as suggested");
@@ -259,9 +259,50 @@ describe("the interview", () => {
     expect(body.messages).toHaveLength(4);
   });
 
+  it("shows no summary until the changes question is answered, and sends the stage back", async () => {
+    const fetchMock = mockBackend(
+      { reply: "Any changes?", fields: complete, stage: "changes" },
+      { reply: "Please check the details.", fields: complete, stage: "review" },
+    );
+    const { send, start } = setup();
+    await start("Mutual Non-Disclosure Agreement");
+    await send("The last detail");
+    await screen.findByText("Any changes?");
+    expect(screen.queryByRole("region", { name: "Check the details" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Download PDF" })).toBeDisabled();
+    expect(screen.getByText(/Available once you answer the question about changes/)).toBeInTheDocument();
+    expect(sentBody(fetchMock, 0).stage).toBe("collecting");
+
+    await send("No");
+    await screen.findByText("Please check the details.");
+    expect(screen.getByRole("region", { name: "Check the details" })).toBeInTheDocument();
+    expect(sentBody(fetchMock, 1).stage).toBe("changes");
+  });
+
+  it("cannot be confirmed while a reply is on its way", async () => {
+    const backend = mockBackend({ reply: "Please check the details.", fields: complete, stage: "review" });
+    const { user, send, start } = setup();
+    await start("Mutual Non-Disclosure Agreement");
+    await send("No");
+    const confirm = await screen.findByRole("button", { name: "Confirm details" });
+    expect(confirm).toBeEnabled();
+
+    // Only the next chat reply is held back: saves must still finish, or they block later tests.
+    let release: (reply: Response) => void = () => {};
+    const held = new Promise<Response>((resolve) => (release = resolve));
+    vi.stubGlobal("fetch", (url: string) => (url === "/api/chat" ? held : backend(url)));
+    await send("Change the term");
+    expect(confirm).toBeDisabled();
+    await user.click(confirm);
+    expect(screen.getByRole("button", { name: "Download PDF" })).toBeDisabled();
+    release(Response.json({ reply: "Done.", fields: complete, stage: "review" }));
+    await screen.findByText("Done.");
+    expect(confirm).toBeEnabled();
+  });
+
   it("enables the download only once every detail is collected and confirmed", async () => {
     const print = vi.spyOn(window, "print").mockImplementation(() => {});
-    mockBackend({ reply: "Please check the details and confirm them.", fields: complete });
+    mockBackend({ reply: "Please check the details and confirm them.", fields: complete, stage: "review" });
     const { user, send, start } = setup();
     await start("Mutual Non-Disclosure Agreement");
     const download = screen.getByRole("button", { name: "Download PDF" });
@@ -290,9 +331,9 @@ describe("the interview", () => {
   it("asks for a new confirmation after a change, but not after a turn without one", async () => {
     const changed = { ...complete, mndaTermYears: 2 };
     mockBackend(
-      { reply: "Please check the details.", fields: complete },
-      { reply: "You're welcome.", fields: complete },
-      { reply: "Updated the MNDA term from 1 year to 2 years.", fields: changed },
+      { reply: "Please check the details.", fields: complete, stage: "review" },
+      { reply: "You're welcome.", fields: complete, stage: "confirmed" },
+      { reply: "Updated the MNDA term from 1 year to 2 years.", fields: changed, stage: "review" },
     );
     const { user, send, start } = setup();
     await start("Mutual Non-Disclosure Agreement");
@@ -448,7 +489,7 @@ describe("saving", () => {
   });
 
   it("saves after every answer and after Confirm details", async () => {
-    const fetchMock = mockBackend({ reply: "Please check the details.", fields: complete });
+    const fetchMock = mockBackend({ reply: "Please check the details.", fields: complete, stage: "review" });
     const { user, send, start, onSaved } = setup();
     await start("Mutual Non-Disclosure Agreement");
     await send("All done");
@@ -456,16 +497,16 @@ describe("saving", () => {
 
     const answered = [...started(), { role: "user", content: "All done" }, { role: "assistant", content: "Please check the details." }];
     await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(2));
-    expect(saves(fetchMock, "/api/drafts/7")).toEqual([{ messages: answered, start: 2, fields: complete, confirmed: false }]);
+    expect(saves(fetchMock, "/api/drafts/7")).toEqual([{ messages: answered, start: 2, fields: complete, stage: "review" }]);
 
     await user.click(screen.getByRole("button", { name: "Confirm details" }));
     await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(3));
-    expect(saves(fetchMock, "/api/drafts/7")[1]).toEqual({ messages: answered, start: 2, fields: complete, confirmed: true });
+    expect(saves(fetchMock, "/api/drafts/7")[1]).toEqual({ messages: answered, start: 2, fields: complete, stage: "confirmed" });
   });
 
   it("saves a cleared confirmation when an answer changes a detail", async () => {
     const changed = { ...complete, mndaTermYears: 2 };
-    const fetchMock = mockBackend({ reply: "Check it.", fields: complete }, { reply: "Updated.", fields: changed });
+    const fetchMock = mockBackend({ reply: "Check it.", fields: complete, stage: "review" }, { reply: "Updated.", fields: changed, stage: "review" });
     const { user, send, start, onSaved } = setup();
     await start("Mutual Non-Disclosure Agreement");
     await send("Done");
@@ -474,7 +515,7 @@ describe("saving", () => {
     await send("Make it 2 years");
     await screen.findByText("Updated.");
     await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(4));
-    expect(saves(fetchMock, "/api/drafts/7").at(-1)).toMatchObject({ fields: changed, confirmed: false });
+    expect(saves(fetchMock, "/api/drafts/7").at(-1)).toMatchObject({ fields: changed, stage: "review" });
   });
 
   it("warns when a save fails, keeps the reply, and clears the warning after the next save", async () => {
@@ -536,7 +577,7 @@ describe("reopening a draft", () => {
     ],
     start: 2,
     fields: { ...emptyValues, party1: { ...emptyValues.party1, company: "Acme Inc." } },
-    confirmed: false,
+    stage: "collecting",
     updatedAt: "2026-11-04T12:00:00.000+00:00",
     ...change,
   });
@@ -569,7 +610,7 @@ describe("reopening a draft", () => {
   it("opens a confirmed draft ready to download, without taking focus from the message box", async () => {
     mockBackend();
     vi.stubGlobal("matchMedia", (query: string) => ({ matches: query === "(pointer: fine)" }));
-    const { preview } = setup(saved({ fields: complete, confirmed: true }));
+    const { preview } = setup(saved({ fields: complete, stage: "confirmed" }));
     await preview.findByRole("heading", { level: 1, name: "Standard Terms" });
     expect(screen.getByRole("button", { name: "Download PDF" })).toBeEnabled();
     expect(screen.queryByRole("region", { name: "Check the details" })).not.toBeInTheDocument();
@@ -578,7 +619,7 @@ describe("reopening a draft", () => {
 
   it("shows the summary again for a complete draft that was not confirmed", async () => {
     mockBackend();
-    setup(saved({ fields: complete }));
+    setup(saved({ fields: complete, stage: "review" }));
     expect(screen.getByRole("region", { name: "Check the details" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Download PDF" })).toBeDisabled();
   });

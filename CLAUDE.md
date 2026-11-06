@@ -36,23 +36,22 @@ are set up. Update this section after every ticket.
   (`backend/app/chat.py`, LiteLLM per the cerebras skill) is stateless: the
   browser sends the history, the current fields and its local date, and gets
   back the reply plus the merged fields (null or invalid values never
-  overwrite collected ones). Fields start empty; `isComplete()` in
-  `lib/nda.ts` tells when everything is collected (modifications are
-  optional). Chat history lives in browser memory only. The standard terms come from
+  overwrite collected ones). Fields start empty (PL-12 decides when everything is collected;
+  modifications are optional). Chat history lives in browser memory only. The standard terms come from
   `/api/templates/mutual-nda` at runtime. `start.sh` passes `.env` with
   `--env-file`, so its lines must be `KEY=value` with no spaces or quotes.
 - PL-8: the system prompt asks for full signer names and complete notice
   addresses, asks whether a party is a company or an individual (an
   individual's name also goes in Company, title "Individual") and confirms
-  corrections. Once `isComplete()`, `NdaSummary.tsx` shows a summary built
-  by `summarize()` in `lib/nda.ts`, not by the AI; Download PDF needs its
-  Confirm details click, and any field change from the chat clears it.
+  corrections. `Summary.tsx` shows a summary built by `summarize()`
+  in `lib/nda.ts`, not by the AI; Download PDF needs its Confirm details click,
+  and any field change from the chat clears it (timing: PL-12).
 - PL-9: every LLM call passes `max_tokens=MAX_TOKENS` (2000, in `chat.py`);
   the cerebras skill requires it. Measured turns use up to about 1,100
   tokens, hidden reasoning included. A reply cut off at the cap fails
   validation and shows the usual "could not respond" error.
-- PL-10: the model returns `ModelTurn` (`fields`, `reply`, `question`);
-  `question` must be non-empty (else 502) so every turn asks one, and
+- PL-10: the model returns `ModelTurn` (now also `followUp`, see PL-12);
+  `question` must be non-empty while details are missing (else 502), and
   `chat_turn` joins reply and question into the `ChatTurn.reply` the
   browser gets. The prompt
   lists the questions in order, one detail each, says which Party field is
@@ -103,6 +102,22 @@ are set up. Update this section after every ticket.
   leaves `updated_at` alone, and autosave never writes `title`. Rename and delete
   run in the save queue (`inTurn` in `lib/api.ts`), so a running save cannot fail
   or re-list a deleted draft. Deleting the open draft shows a fresh chat first.
+- PL-12: the app ends the interview. `stages.py` holds the stage (`collecting`,
+  `changes`, `review`, `confirmed`) and the fixed final questions; the `stage`
+  column replaced `drafts.confirmed`, and the browser sends it with each chat
+  turn and reads it back. `is_complete` in `documents.py` is the only
+  completeness rule (`isComplete` in TypeScript is gone). Once complete, the
+  model's `question` is ignored unless it sets `followUp`, which the prompts
+  limit to questions about the user's last message; while details are missing an
+  empty question still fails the turn (PL-10). The summary shows only from
+  `review`. SLA, DPA, BAA and AI Addendum gained a routine `modifications`; the
+  prompt lists every other routine term but not that one, so the model does not
+  ask it. Rules for ambiguous places, full official names and one double-check
+  are in both prompts; the place rule names Washington and Portland on purpose,
+  an exception to PL-10's rule (wording without them still missed some, and they
+  did not appear in unrelated replies). `/api/choose` no longer suggests a poor fit. Live runs:
+  conditional "(Only if ...)" terms were skipped in about 1 of 18 runs, and the
+  model sometimes asks about other routine terms as well.
 
 ## Development process
 - Read the ticket with the Atlassian tools before starting.

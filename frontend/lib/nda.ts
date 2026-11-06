@@ -113,22 +113,6 @@ export function buildCoverPage(v: NdaValues): string {
   ].join("\n\n");
 }
 
-export function partyComplete(p: Party): boolean {
-  return Object.values(p).every((t) => t?.trim());
-}
-
-// True once every required detail is collected; modifications are optional.
-export function isComplete(v: NdaValues): boolean {
-  return (
-    [v.purpose, v.governingLaw, v.jurisdiction].every((t) => t?.trim()) &&
-    partyComplete(v.party1) &&
-    partyComplete(v.party2) &&
-    formatDate(v.effectiveDate) !== "" &&
-    (v.mndaExpires === false || (v.mndaExpires === true && v.mndaTermYears !== null)) &&
-    (v.confidentialityPerpetual === true || (v.confidentialityPerpetual === false && v.confidentialityYears !== null))
-  );
-}
-
 export function partyRows(role: string, p: Party): [string, string][] {
   return [
     [`${role} company`, p.company ?? ""],
@@ -138,7 +122,7 @@ export function partyRows(role: string, p: Party): [string, string][] {
 }
 
 // The details the user confirms before downloading, as [label, value] rows.
-// Only shown once isComplete(v), so it needs no placeholders for missing values.
+// Only shown once every detail is collected, so it needs no placeholders for missing values.
 export function summarize(v: NdaValues): [string, string][] {
   return [
     ...partyRows("Party 1", v.party1),

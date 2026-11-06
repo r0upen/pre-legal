@@ -14,6 +14,7 @@ import {
   type Draft,
   type DraftState,
   type DraftSummary,
+  type Stage,
 } from "@/lib/api";
 import { documentKind, type DocValues, type DocumentSpec } from "@/lib/documents";
 import Chat from "./Chat";
@@ -45,8 +46,8 @@ export default function DocumentBuilder({ documents, saved, onCreated, onSaved }
   const [values, setValues] = useState<DocValues | null>(saved?.fields ?? null);
   // undefined while loading; null when they could not be loaded.
   const [standardTerms, setStandardTerms] = useState<string | null | undefined>(undefined);
-  // Set by Confirm details; any change from the chat clears it, so the summary shows again.
-  const [confirmed, setConfirmed] = useState(saved?.confirmed ?? false);
+  // Set by the server after each turn, and to "confirmed" by Confirm details.
+  const [stage, setStage] = useState<Stage>(saved?.stage ?? "collecting");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [saveFailed, setSaveFailed] = useState(false);
@@ -56,15 +57,16 @@ export default function DocumentBuilder({ documents, saved, onCreated, onSaved }
   const generation = useRef(0);
 
   const kind = doc && documentKind(doc);
-  const complete = !!kind && !!values && kind.isComplete(values);
   // Without the standard terms there is nothing to print, whatever the chat has collected.
-  const ready = complete && confirmed && typeof standardTerms === "string";
-  const showSummary = complete && !confirmed;
+  const ready = stage === "confirmed" && typeof standardTerms === "string";
+  const showSummary = stage === "review" && !!kind && !!values;
   const hint = !doc
     ? "Available once you choose an agreement."
-    : complete
-      ? "Available once you confirm the details below."
-      : "Available once all required details are collected.";
+    : stage === "collecting"
+      ? "Available once all required details are collected."
+      : stage === "changes"
+        ? "Available once you answer the question about changes."
+        : "Available once you confirm the details below.";
   const downloadRef = useRef<HTMLButtonElement>(null);
   const documentRef = useRef<HTMLDivElement>(null);
   const docId = doc?.id;
@@ -133,10 +135,10 @@ export default function DocumentBuilder({ documents, saved, onCreated, onSaved }
 
   function confirmDetails() {
     // Render first: the download button is disabled until then, and it cannot take focus.
-    flushSync(() => setConfirmed(true));
+    flushSync(() => setStage("confirmed"));
     // Confirming removes the summary panel and its focused button, so keep keyboard focus on the next step.
     downloadRef.current?.focus();
-    if (draftId !== null && values) save(draftId, { messages, start, fields: values, confirmed: true });
+    if (draftId !== null && values) save(draftId, { messages, start, fields: values, stage: "confirmed" });
   }
 
   // The user's message joins the history only once the assistant has answered,
@@ -148,15 +150,13 @@ export default function DocumentBuilder({ documents, saved, onCreated, onSaved }
     setError("");
     try {
       if (doc && values && draftId !== null) {
-        const turn = await sendChat(doc.id, next.slice(start), values);
+        const turn = await sendChat(doc.id, next.slice(start), values, stage);
         if (sentIn !== generation.current) return true;
         const answered: ChatMessage[] = [...next, { role: "assistant", content: turn.reply }];
-        // Both come from the same JSON shape, so equal values serialize the same way.
-        const stillConfirmed = confirmed && JSON.stringify(turn.fields) === JSON.stringify(values);
         setMessages(answered);
         setValues(turn.fields);
-        setConfirmed(stillConfirmed);
-        save(draftId, { messages: answered, start, fields: turn.fields, confirmed: stillConfirmed });
+        setStage(turn.stage);
+        save(draftId, { messages: answered, start, fields: turn.fields, stage: turn.stage });
       } else {
         const turn = await chooseDocument(next);
         if (sentIn !== generation.current) return true;
@@ -216,7 +216,7 @@ export default function DocumentBuilder({ documents, saved, onCreated, onSaved }
           </div>
         </div>
         <div ref={documentRef} className="space-y-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto print:overflow-visible">
-          {showSummary && <Summary rows={kind.summarize(values)} onConfirm={confirmDetails} />}
+          {showSummary && <Summary rows={kind.summarize(values)} onConfirm={confirmDetails} disabled={pending} />}
           <p className="hidden text-xs italic text-slate-600 print:block">
             Draft prepared with Pre-Legal. This draft is a starting point for review by a lawyer. It is not legal advice.
           </p>
