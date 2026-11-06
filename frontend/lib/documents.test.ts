@@ -56,14 +56,6 @@ describe("documentKind", () => {
     expect(baa.build(filledBaa, "# Terms")).toContain("### BAA Effective Date\n\nMarch 5, 2026");
   });
 
-  it("is complete only once every party detail and term is filled in, with a valid date", () => {
-    expect(baa.isComplete(baa.empty)).toBe(false);
-    expect(baa.isComplete(filledBaa)).toBe(true);
-    expect(baa.isComplete({ ...filledBaa, baaEffectiveDate: "next Monday" })).toBe(false);
-    expect(baa.isComplete({ ...filledBaa, limitations: " " })).toBe(false);
-    expect(baa.isComplete({ ...filledBaa, party2: { ...filledBaa.party2, title: null } })).toBe(false);
-  });
-
   it("summarizes every detail and marks the terms still at their defaults", () => {
     const rows = baa.summarize({ ...filledBaa, limitations: "No offshoring" });
     expect(rows).toEqual([
@@ -77,6 +69,7 @@ describe("documentKind", () => {
       { label: "BAA Effective Date", value: "March 5, 2026", isDefault: false },
       { label: "Breach Notification Period", value: "within 30 days after discovery", isDefault: true },
       { label: "Limitations", value: "No offshoring", isDefault: false },
+      { label: "Changes to the Standard Terms", value: "None", isDefault: true },
     ]);
   });
 

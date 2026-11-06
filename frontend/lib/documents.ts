@@ -6,9 +6,7 @@ import {
   emptyParty,
   emptyValues as emptyNda,
   formatDate,
-  isComplete as ndaComplete,
   orPlaceholder,
-  partyComplete,
   partyRows,
   partyTable,
   stripSpans,
@@ -48,7 +46,6 @@ export type DocumentKind = {
   empty: DocValues;
   greeting: string;
   build: (values: DocValues, standardTerms: string) => string;
-  isComplete: (values: DocValues) => boolean;
   summarize: (values: DocValues) => SummaryRow[];
 };
 
@@ -73,7 +70,6 @@ export function documentKind(spec: DocumentSpec): DocumentKind {
       empty: emptyNda,
       greeting: greeting("Mutual NDA", "what is the name of the first party?"),
       build: (v, terms) => buildNda(v as NdaValues, terms),
-      isComplete: (v) => ndaComplete(v as NdaValues),
       summarize: (v) => toRows(ndaSummary(v as NdaValues)),
     };
   }
@@ -83,8 +79,6 @@ export function documentKind(spec: DocumentSpec): DocumentKind {
     greeting: greeting(spec.name, `what is the ${parties[0]}'s name?`),
     // The terms open with the agreement's title, which the cover page already shows.
     build: (v, terms) => `${buildCoverPage(spec, v)}\n\n${stripSpans(terms).replace(/^# .*/, "# Standard Terms")}`,
-    // Optional terms count once answered: the chat records "None" or "Not applicable".
-    isComplete: (v) => partyComplete(v.party1) && partyComplete(v.party2) && fields.every((f) => shown(v, f) !== ""),
     summarize: (v) => [
       ...toRows([...partyRows(parties[0], v.party1), ...partyRows(parties[1], v.party2)]),
       // A value still equal to its default was not specifically chosen by the user.

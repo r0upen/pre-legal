@@ -28,12 +28,12 @@ CREATE TABLE drafts (
     messages TEXT NOT NULL,
     start INTEGER NOT NULL,
     fields TEXT NOT NULL,
-    confirmed INTEGER NOT NULL,
+    stage TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
 """
 
-DRAFT_COLUMNS = "id, document_id, title, messages, start, fields, confirmed, updated_at"
+DRAFT_COLUMNS = "id, document_id, title, messages, start, fields, stage, updated_at"
 
 
 def reset(path: Path) -> None:
@@ -106,7 +106,7 @@ def _draft(row: sqlite3.Row) -> dict:
         "messages": json.loads(row["messages"]),
         "start": row["start"],
         "fields": json.loads(row["fields"]),
-        "confirmed": bool(row["confirmed"]),
+        "stage": row["stage"],
         "updatedAt": row["updated_at"],
     }
 
@@ -114,8 +114,8 @@ def _draft(row: sqlite3.Row) -> dict:
 def create_draft(path: Path, user_id: int, document: str, messages: list[dict], start: int, fields: dict) -> dict:
     with closing(_connect(path)) as conn, conn:
         row = conn.execute(
-            "INSERT INTO drafts (user_id, document_id, messages, start, fields, confirmed, updated_at) "
-            f"VALUES (?, ?, ?, ?, ?, 0, ?) RETURNING {DRAFT_COLUMNS}",
+            "INSERT INTO drafts (user_id, document_id, messages, start, fields, stage, updated_at) "
+            f"VALUES (?, ?, ?, ?, ?, 'collecting', ?) RETURNING {DRAFT_COLUMNS}",
             (user_id, document, json.dumps(messages), start, json.dumps(fields), timestamp()),
         ).fetchone()
     return _draft(row)
@@ -142,13 +142,13 @@ def get_draft(path: Path, user_id: int, draft_id: int) -> dict | None:
 
 
 def update_draft(
-    path: Path, user_id: int, draft_id: int, messages: list[dict], start: int, fields: dict, confirmed: bool
+    path: Path, user_id: int, draft_id: int, messages: list[dict], start: int, fields: dict, stage: str
 ) -> dict | None:
     with closing(_connect(path)) as conn, conn:
         row = conn.execute(
-            "UPDATE drafts SET messages = ?, start = ?, fields = ?, confirmed = ?, updated_at = ? "
+            "UPDATE drafts SET messages = ?, start = ?, fields = ?, stage = ?, updated_at = ? "
             f"WHERE id = ? AND user_id = ? RETURNING {DRAFT_COLUMNS}",
-            (json.dumps(messages), start, json.dumps(fields), confirmed, timestamp(), draft_id, user_id),
+            (json.dumps(messages), start, json.dumps(fields), stage, timestamp(), draft_id, user_id),
         ).fetchone()
     return _draft(row) if row else None
 

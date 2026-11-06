@@ -26,7 +26,7 @@ def new_draft(document="mutual-nda", **change):
 
 
 def update(**change):
-    return {"messages": MESSAGES, "start": 2, "fields": empty_fields(), "confirmed": False} | change
+    return {"messages": MESSAGES, "start": 2, "fields": empty_fields(), "stage": "collecting"} | change
 
 
 @pytest.fixture
@@ -55,14 +55,14 @@ def test_a_saved_draft_reopens_with_its_conversation_and_fields(client):
     fields = empty_fields()
     fields["governingLaw"] = "Delaware"
     messages = [*MESSAGES, {"role": "user", "content": "Acme"}, {"role": "assistant", "content": "Who signs?"}]
-    assert client.put(f"/api/drafts/{draft_id}", json=update(messages=messages, fields=fields, confirmed=True)).status_code == 200
+    assert client.put(f"/api/drafts/{draft_id}", json=update(messages=messages, fields=fields, stage="confirmed")).status_code == 200
 
     draft = client.get(f"/api/drafts/{draft_id}").json()
     assert draft["document"] == "mutual-nda"
     assert draft["messages"] == messages
     assert draft["start"] == 2
     assert draft["fields"]["governingLaw"] == "Delaware"
-    assert draft["confirmed"] is True
+    assert draft["stage"] == "confirmed"
 
 
 def test_a_draft_survives_logging_out_and_back_in(client):
@@ -90,9 +90,9 @@ def test_the_list_shows_known_parties_and_the_latest_change_first(client):
     assert summary["parties"] == ["Acme Inc.", "Globex LLC"]
 
 
-def test_a_new_draft_is_not_confirmed(client):
+def test_a_new_draft_starts_collecting(client):
     draft_id = client.post("/api/drafts", json=new_draft()).json()["id"]
-    assert client.get(f"/api/drafts/{draft_id}").json()["confirmed"] is False
+    assert client.get(f"/api/drafts/{draft_id}").json()["stage"] == "collecting"
 
 
 def test_invalid_values_in_fields_are_dropped_like_in_the_chat(client):
@@ -145,8 +145,8 @@ def test_a_user_cannot_see_or_change_another_users_draft(client):
 
     assert other.get("/api/drafts").json() == []
     assert other.get(f"/api/drafts/{draft_id}").status_code == 404
-    assert other.put(f"/api/drafts/{draft_id}", json=update(confirmed=True)).status_code == 404
-    assert client.get(f"/api/drafts/{draft_id}").json()["confirmed"] is False
+    assert other.put(f"/api/drafts/{draft_id}", json=update(stage="confirmed")).status_code == 404
+    assert client.get(f"/api/drafts/{draft_id}").json()["stage"] == "collecting"
 
 
 def test_a_user_cannot_rename_or_delete_another_users_draft(client):

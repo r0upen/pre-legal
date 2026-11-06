@@ -167,6 +167,12 @@
           "key": "supportChannel",
           "label": "Support Channel",
           "ask": "How should the customer contact support (e.g. an email address or ticket system)?"
+        },
+        {
+          "key": "modifications",
+          "label": "Changes to the Standard Terms",
+          "ask": "Would you like any changes to the standard terms (most people have none)?",
+          "default": "None"
         }
       ]
     }
@@ -252,6 +258,12 @@
           "label": "Governing Member State",
           "ask": "If personal data is transferred out of the EEA or UK, which country's law governs the transfer clauses?",
           "default": "Ireland for EEA transfers; England and Wales for UK transfers"
+        },
+        {
+          "key": "modifications",
+          "label": "Changes to the Standard Terms",
+          "ask": "Would you like any changes to the standard terms (most people have none)?",
+          "default": "None"
         }
       ]
     }
@@ -840,6 +852,12 @@
           "label": "Limitations",
           "ask": "Should the provider be restricted from subcontracting, offshoring, de-identifying or aggregating the data?",
           "default": "None"
+        },
+        {
+          "key": "modifications",
+          "label": "Changes to the Standard Terms",
+          "ask": "Would you like any changes to the standard terms (most people have none)?",
+          "default": "None"
         }
       ]
     }
@@ -886,6 +904,12 @@
           "key": "improvementRestrictions",
           "label": "Improvement Restrictions",
           "ask": "Are there limits on using the customer's data to improve the product in other ways?",
+          "default": "None"
+        },
+        {
+          "key": "modifications",
+          "label": "Changes to the Standard Terms",
+          "ask": "Would you like any changes to the standard terms (most people have none)?",
           "default": "None"
         }
       ]

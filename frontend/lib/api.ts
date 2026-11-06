@@ -67,7 +67,9 @@ export async function getMe(): Promise<User> {
 }
 
 export type ChatMessage = { role: "user" | "assistant"; content: string };
-export type ChatTurn = { reply: string; fields: DocValues };
+// Where the interview is; the server decides it after each turn (backend/app/stages.py).
+export type Stage = "collecting" | "changes" | "review" | "confirmed";
+export type ChatTurn = { reply: string; fields: DocValues; stage: Stage };
 export type ChooseTurn = { reply: string; recommendation: string | null };
 
 // The user's local date as YYYY-MM-DD, so "next Monday" follows their calendar.
@@ -82,12 +84,12 @@ export function chooseDocument(messages: ChatMessage[]): Promise<ChooseTurn> {
 }
 
 // One turn of the interview for the chosen document.
-export function sendChat(document: string, messages: ChatMessage[], fields: DocValues): Promise<ChatTurn> {
-  return post("/api/chat", { document, messages, fields, today: localToday() });
+export function sendChat(document: string, messages: ChatMessage[], fields: DocValues, stage: Stage): Promise<ChatTurn> {
+  return post("/api/chat", { document, messages, fields, today: localToday(), stage });
 }
 
 // What is saved for a draft: everything needed to reopen it where the user left off.
-export type DraftState = { messages: ChatMessage[]; start: number; fields: DocValues; confirmed: boolean };
+export type DraftState = { messages: ChatMessage[]; start: number; fields: DocValues; stage: Stage };
 export type Draft = DraftState & { id: number; document: string; updatedAt: string };
 // One sidebar item: title is null until the user renames it; parties holds the company names known so far.
 export type DraftSummary = { id: number; document: string; title: string | null; parties: string[]; updatedAt: string };

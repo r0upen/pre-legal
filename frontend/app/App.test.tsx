@@ -20,7 +20,7 @@ const draft = {
   ],
   start: 2,
   fields: emptyValues,
-  confirmed: false,
+  stage: "collecting",
   updatedAt: summary.updatedAt,
 };
 
@@ -243,7 +243,7 @@ describe("the sidebar", () => {
     const fetchMock = mockBackend({
       drafts: [summary],
       routes: {
-        "/api/chat": () => Response.json({ reply: "Newest reply.", fields: emptyValues }),
+        "/api/chat": () => Response.json({ reply: "Newest reply.", fields: emptyValues, stage: "collecting" }),
         "/api/drafts/7": (init) =>
           init?.method === "PUT" ? new Promise<Response>((resolve) => (finishSave = resolve)) : Response.json(draft),
       },
@@ -509,7 +509,7 @@ describe("renaming and deleting drafts", () => {
     mockBackend({
       drafts: [summary],
       routes: {
-        "/api/chat": () => Response.json({ reply: "Newest reply.", fields: emptyValues }),
+        "/api/chat": () => Response.json({ reply: "Newest reply.", fields: emptyValues, stage: "collecting" }),
         "/api/drafts/7": (init) => {
           if (init?.method) order.push(init.method);
           if (init?.method === "PUT") return new Promise<Response>((resolve) => (finishSave = resolve));

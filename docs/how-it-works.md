@@ -68,8 +68,10 @@ the agreement that fits best, says in a sentence why, and a **Start** button
 for it appears under its reply. The agreement only starts when the user
 clicks that button, so a casual "ok" never starts the wrong one. If the
 request is unclear, the AI asks a short question first. If Pre-Legal cannot
-draft what they asked for, such as an employment contract, the AI says so
-plainly, suggests the closest agreement and explains how it differs.
+draft what they asked for, such as an employment contract or an apartment
+rental, the AI says plainly that there is no good match and points to See
+all. It does not suggest an agreement that would not fit, and no Start button
+appears.
 
 Four agreements attach to a main agreement: the Service Level Agreement,
 the Data Processing Agreement, the Business Associate Agreement and the AI
@@ -100,12 +102,13 @@ so they can type the next answer without clicking.
 ## 4. Each message
 
 When the user sends a message during the interview, the browser sends the
-server four things:
+server five things:
 
 - which agreement is being drafted,
 - the interview so far (how the agreement was chosen is left out),
 - the details collected so far,
-- the user's local date, so "next Monday" means their Monday.
+- the user's local date, so "next Monday" means their Monday,
+- how far the interview has got (its stage, described in section 6).
 
 The server adds its instructions for the AI and the current details, and
 asks the AI for one answer. The AI must reply in a fixed format: the details
@@ -146,7 +149,7 @@ user can simply accept it.
 
 Everything else is a **routine term**, such as the liability cap or how
 much notice ends a renewal. Routine terms start filled in with Common
-Paper's usual default and are not asked about one by one. At the end the AI
+Paper's usual default and are not asked about one by one. At the end the app
 says so, and the user can ask to change any of them in their own words, for
 example "make the liability cap 2 times the fees". Some terms only matter
 after a particular answer, such as safeguards for health data; they start
@@ -166,8 +169,12 @@ The AI's instructions also tell it to:
 - say what changed when the user changes an earlier answer;
 - gently ask once when an answer is clearly not a real value (random
   letters, a placeholder like "test", or an answer that does not fit the
-  question), and accept it as given if the user confirms; real names are
-  never questioned just because they are uncommon;
+  question), and accept it as given if the user confirms, without asking
+  again; real names are never questioned just because they are uncommon;
+- ask which place the user means when a place given for the governing law or
+  the courts could be more than one ("Washington" could be the state or D.C.;
+  "Portland" could be in Oregon or Maine), and record the full official name,
+  such as "the State of Washington";
 - talk about the details in plain language, never in the app's internal
   terms (for example "November 3, 2026" rather than "2026-11-03");
 - never invent names, addresses, amounts or dates, and stay on the topic of
@@ -177,29 +184,57 @@ The AI's instructions also tell it to:
 
 The Mutual NDA was built first and keeps its own, slightly different
 interview: it asks about every term, including how long the agreement and
-confidentiality last and any changes to the standard terms.
+confidentiality last.
 
-## 6. Checking the details
+## 6. The end of the interview and checking the details
 
-Once every required detail is collected, a "Check the details" box appears
-above the preview, and the agreement side scrolls back to the top so the
-user sees it. The Preview title and the Download PDF button stay at the top
-of that side while the agreement scrolls. The app builds this summary itself
-from the collected details, so it always matches what will be printed. The
-AI only asks the user to check it.
+The app, not the AI, runs the end of the interview, because the AI sometimes
+put the last two requests in one message and no wording of its instructions
+stopped that. The server keeps track of a stage, saved with the draft:
+
+1. **Collecting**: details are still missing, and the AI asks for them. The
+   server alone decides when everything is collected, using one rule for
+   every agreement, and tells the browser.
+2. **Changes**: once everything is collected, the app asks whether the user
+   wants any changes to the standard terms.
+3. **Review**: once that is answered, the app asks the user to check the
+   summary and click Confirm details, and reminds them that a lawyer should
+   review the draft. It asks again after any later change.
+4. **Confirmed**: the user clicked Confirm details. If they keep chatting
+   without changing anything, the app says the details are confirmed and they
+   can download the PDF.
+
+These questions are fixed text. The AI still writes the short acknowledgement
+in front of them, and whatever question it wrote itself is thrown away.
+
+There is one exception. The AI can flag that it needs one more answer about
+what the user just said, and then its own question is shown and the stage
+waits. It may do this if the user wants changes but has not said what they
+are, if an answer needs a double-check or a place needs clarifying, or if an
+answer makes a term marked "only if" apply. Because this is the AI's own
+judgment, it can occasionally get it wrong, such as asking one more question
+about a routine term, or not asking about an "only if" term. That term then
+stays "Not applicable" and tagged Default in the summary, where the user can
+see it and ask to change it.
+
+When the stage reaches Review, a "Check the details" box appears above the
+preview, and the agreement side scrolls back to the top so the user sees it.
+The Preview title and the Download PDF button stay at the top of that side
+while the agreement scrolls. The app builds this summary itself from the
+collected details, so it always matches what will be printed.
 
 Every routine term still at its default is tagged **Default** in the
 summary, so the user can see which terms they did not choose themselves. A
 term the user changed loses the tag.
 
 The user either clicks **Confirm details** or tells the AI what to change.
-If anything changes after confirming, the box comes back and must be
-confirmed again.
+The button waits while a reply is on its way, since that reply could change
+the details. If anything changes after confirming, the box comes back and must
+be confirmed again.
 
 ## 7. Downloading the PDF
 
-**Download PDF** is enabled only when every detail is collected and the
-user has confirmed the summary. Clicking it opens the browser's print
+**Download PDF** is enabled only once the user has confirmed the summary. Clicking it opens the browser's print
 dialog, where the user chooses "Save as PDF"; the suggested file name is the
 agreement's name. The printed copy starts with a note at the top of the first
 page that the draft is a starting point for review by a lawyer, not legal
@@ -211,8 +246,7 @@ chat and the on-screen notice are left out.
 Drafts save themselves; there is no Save button. A draft is created when an
 agreement starts, and saved again after every reply and every Confirm details
 click. What is saved is everything needed to pick up where the user left off:
-the whole conversation, the details collected and whether they were
-confirmed. The chat before an agreement is chosen is saved only once one
+the whole conversation, the details collected and the interview's stage. The chat before an agreement is chosen is saved only once one
 starts, so simply browsing creates nothing.
 
 The sidebar lists the user's own drafts with the latest change first, each

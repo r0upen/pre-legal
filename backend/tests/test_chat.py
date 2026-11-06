@@ -10,6 +10,7 @@ from app import chat
 from app.chat import EXTRA_BODY, MAX_TOKENS, MODEL, ChooseTurn, merge, model_turn
 from app.documents import DOCUMENTS, fields_model
 from app.fields import NdaFields
+from app.prompts import interview_prompt
 
 EMPTY_PARTY = {"name": None, "title": None, "company": None, "noticeAddress": None}
 EMPTY = {
@@ -38,11 +39,12 @@ def chat_body(text="Acme Inc.", current=EMPTY, document="mutual-nda") -> dict:
         "messages": [GREETING, {"role": "user", "content": text}],
         "fields": current,
         "today": "2026-10-22",
+        "stage": "collecting",
     }
 
 
 def model_output(reply="Thanks.", question="Who signs for it?", output_fields=EMPTY) -> str:
-    return json.dumps({"fields": output_fields, "reply": reply, "question": question})
+    return json.dumps({"fields": output_fields, "reply": reply, "followUp": False, "question": question})
 
 
 @pytest.fixture
@@ -103,6 +105,7 @@ def test_chat_returns_reply_and_merged_fields(client, fake_llm):
     assert res.json() == {
         "reply": "Thanks, Acme it is. Who signs for Acme?",
         "fields": fields(governingLaw="Delaware", party1=EMPTY_PARTY | {"company": "Acme Inc."}),
+        "stage": "collecting",
     }
 
 
@@ -117,6 +120,24 @@ def test_chat_joins_acknowledgement_and_question(client, fake_llm, reply, questi
     assert client.post("/api/chat", json=chat_body()).json()["reply"] == expected
 
 
+@pytest.mark.parametrize("document", list(DOCUMENTS))
+def test_interview_prompts_cover_the_shared_rules(document):
+    prompt = interview_prompt(document).format(today="", fields="", routine="")
+    rules = [
+        "The app itself ends the interview",
+        "do not write a summary yourself",
+        "set followUp to true",
+        "could mean more than one place",
+        "full official name",
+        "never double-check that value again",
+    ]
+    for rule in rules:
+        assert rule in prompt
+    # The app asks these; a model that sees them tends to ask them too.
+    assert "Would you like any changes" not in prompt
+    assert "Could you check" not in prompt
+
+
 def test_system_prompt_covers_the_interview_rules(client, fake_llm):
     client.post("/api/chat", json=chat_body())
     prompt = fake_llm.calls[0]["messages"][0]["content"]
@@ -126,8 +147,6 @@ def test_system_prompt_covers_the_interview_rules(client, fake_llm):
         "full name",
         "ZIP code",
         "say what changed",
-        "do not write a summary yourself",
-        "Confirm details",
         "exactly one question about one detail",
         "Never show field names",
         "clearly not a real value",
@@ -211,7 +230,7 @@ NO_CHANGES = {"generalCapAmount": None, "modifications": None}
 def pilot_output(fields: dict, changed=NO_CHANGES) -> str:
     """The model fills in the asked fields; routine terms come back separately, as changedTerms."""
     asked = {k: v for k, v in fields.items() if k not in NO_CHANGES}
-    return json.dumps({"fields": asked, "changedTerms": changed, "reply": "Got it.", "question": "What next?"})
+    return json.dumps({"fields": asked, "changedTerms": changed, "reply": "Got it.", "followUp": False, "question": "What next?"})
 
 
 def test_chat_fills_in_any_document(client, fake_llm):
@@ -248,7 +267,7 @@ def test_documents_without_routine_terms_have_no_changed_terms():
 def test_document_fields_validate_dates_and_text():
     model = fields_model("business-associate-agreement")
     fields = model.model_validate(
-        {"agreement": "  ", "baaEffectiveDate": "next Monday", "breachNotificationPeriod": None, "limitations": "None"}
+        {"agreement": "  ", "baaEffectiveDate": "next Monday", "breachNotificationPeriod": None, "limitations": "None", "modifications": "None"}
         | {"party1": EMPTY_PARTY, "party2": EMPTY_PARTY}
     )
     assert (fields.agreement, fields.baaEffectiveDate, fields.limitations) == (None, None, "None")
@@ -268,7 +287,6 @@ def test_interview_prompt_is_built_from_the_cover_page_spec(client, fake_llm):
     assert "- generalCapAmount: the General Cap Amount (routine term)" in prompt
     assert "- General Cap Amount: What is the general limit on each party's liability? Default: $10,000." in prompt
     assert "General Cap Amount: What" not in prompt.split("Routine terms")[0]
-    assert "Common Paper's usual defaults, marked" in prompt
     assert "- effectiveDate: the Effective Date (question 12), always YYYY-MM-DD" in prompt
     assert '"None"' in prompt and '"Not applicable"' in prompt
     assert "2026-10-22 (Thursday)" in prompt
@@ -289,9 +307,10 @@ def test_choose_returns_the_recommendation(client, fake_llm):
     prompt = call["messages"][0]["content"]
     for doc in DOCUMENTS.values():
         assert f"- {doc['id']}: {doc['name']}: {doc['description']}" in prompt
-    assert "cannot draft that yet" in prompt
+    assert "no good match" in prompt
     assert "Click Start below to begin." in prompt
-    assert "always suggest the closest one" in prompt
+    assert "Do not suggest or name any agreement" in prompt
+    assert "always suggest" not in prompt
 
 
 def test_choose_allows_no_recommendation(client, fake_llm):
