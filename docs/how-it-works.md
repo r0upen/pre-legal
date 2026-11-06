@@ -118,6 +118,11 @@ question is a required part of its own, so every reply asks one and the
 conversation never stalls. The server joins the acknowledgement and the
 question into the single message the user sees.
 
+The AI sometimes copies an earlier message into its acknowledgement, question
+included, which would ask again for something the user just gave or thank them
+for the wrong thing. So the server leaves out any acknowledgement that contains
+a question or repeats an earlier message, and the user sees just the question.
+
 The server also limits how long that answer may be: about 2,000 tokens,
 roughly 1,500 words, counting the AI's hidden reasoning as well as its
 reply. A normal turn uses a few hundred. Without a limit, the AI service
@@ -200,7 +205,9 @@ If an answer falls short, the AI does not record it yet and asks for exactly
 what is missing: "Elena" gets "What's Elena's last name?", "200 Market St" gets
 a question about the city, state and ZIP code, "$2,500" gets a question about
 how it is charged, and "Harbor Logistics" gets a question about its legal form
-(not for an individual). It then puts the parts together. It asks once: if the
+(not for an individual). It then puts the parts together, and if the user sends
+the whole answer again rather than only the missing part, that is complete too.
+It asks once: if the
 user says that is all there is, such as a person with only one name or a
 business with no legal form, the AI records it as given and moves on. A real
 name is never questioned just because it is uncommon.

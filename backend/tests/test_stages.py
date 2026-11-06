@@ -283,3 +283,41 @@ def test_a_date_the_model_could_not_format_is_not_called_unreal(signed_in_client
     fake_llm.turn = nda_turn(effectiveDate="March 5, 2027")
     reply = turn(signed_in_client, NDA, "collecting").json()["reply"]
     assert "the full date" in reply and "not a real" not in reply
+
+
+# PL-14: the model sometimes copies an earlier message into its acknowledgement, question included.
+ASKED_BEFORE = "Thanks for the address line. And could you provide the city, state and ZIP code?"
+
+
+def turn_after(client, assistant_said):
+    history = [{"role": "assistant", "content": assistant_said}, {"role": "user", "content": "200 Market Street, San Francisco, CA 94105"}]
+    body = {"document": NDA, "messages": history, "fields": complete_fields(NDA) | {"purpose": None}, "today": "2026-10-22", "stage": "collecting"}
+    return client.post("/api/chat", json=body).json()
+
+
+def test_an_acknowledgement_copied_from_an_earlier_message_is_dropped(signed_in_client, fake_llm):
+    fake_llm.turn = {"reply": ASKED_BEFORE, "question": "What is the purpose?"}
+    assert turn_after(signed_in_client, ASKED_BEFORE)["reply"] == "What is the purpose?"
+
+
+def test_part_of_an_earlier_message_counts_as_a_copy(signed_in_client, fake_llm):
+    fake_llm.turn = {"reply": "Thanks for the address line.", "question": "What is the purpose?"}
+    assert turn_after(signed_in_client, ASKED_BEFORE)["reply"] == "What is the purpose?"
+
+
+def test_an_acknowledgement_with_a_question_is_dropped(signed_in_client, fake_llm):
+    fake_llm.turn = {"reply": "Got it, is that everything?", "question": "What is the purpose?"}
+    assert turn_after(signed_in_client, "Where is the notice address?")["reply"] == "What is the purpose?"
+
+
+def test_a_new_acknowledgement_is_kept(signed_in_client, fake_llm):
+    fake_llm.turn = {"reply": "Got the address, thank you!", "question": "What is the purpose?"}
+    assert turn_after(signed_in_client, ASKED_BEFORE)["reply"] == "Got the address, thank you! What is the purpose?"
+
+
+def test_a_dropped_acknowledgement_does_not_lose_the_final_question(signed_in_client, fake_llm):
+    fake_llm.turn = {"reply": ASKED_BEFORE}
+    history = [{"role": "assistant", "content": ASKED_BEFORE}, {"role": "user", "content": "No"}]
+    body = {"document": NDA, "messages": history, "fields": complete_fields(NDA), "today": "2026-10-22", "stage": "collecting"}
+    res = signed_in_client.post("/api/chat", json=body).json()
+    assert (res["reply"], res["stage"]) == (CHANGES_QUESTION, "changes")

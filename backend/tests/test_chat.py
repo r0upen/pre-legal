@@ -151,6 +151,7 @@ def test_interview_prompts_cover_the_shared_rules(document):
         "a company name with no legal form",
         "a street with no city, state or ZIP code",
         "Ask at most once for more about the same detail",
+        "send the whole answer again",
         "Never ask this of an individual",
         "is vague or incomplete",
         "never correcting",

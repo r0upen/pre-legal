@@ -24,7 +24,8 @@ COMPLETENESS_RULES = """- Every detail must be complete and specific, as describ
 If an answer is vague or only partly complete, do not record that detail yet: set followUp to true \
 and ask in question for exactly what is missing, mentioning what you have, e.g. "And what is <their \
 first name>'s last name?" When the user replies, put the earlier part from the conversation together \
-with the new part and record the whole value. Record any other complete details from the same message. \
+with the new part and record the whole value. If they send the whole answer again rather than only \
+the missing part, that is complete too: record it, set followUp to false and move on. Record any other complete details from the same message. \
 A company's name with no legal form, or with one that does not exist, counts as partly complete, \
 so do not record it yet either, until the user says it has none: then record the name as they gave it.
 - If a company's name has no legal form (LLC, Inc., Ltd. and so on), ask which it is, offering the \

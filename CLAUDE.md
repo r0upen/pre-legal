@@ -134,6 +134,10 @@ are set up. Update this section after every ticket.
   the model sometimes records the partial value while asking. Testing the last
   missing detail on its own (not in interview order) can draw a question about a
   detail already held; this did not happen in full interviews.
+  `_acknowledgement` in `chat.py` drops a `reply` that contains a question or repeats
+  an earlier assistant message: the model copied one in about 3 of 8 replays, and
+  prompt wording did not stop it. The model sometimes also asks to confirm an
+  unambiguous state ("California"); not fixed, because the place rule is PL-12's.
 
 ## Development process
 - Read the ticket with the Atlassian tools before starting.

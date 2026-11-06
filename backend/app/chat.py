@@ -75,6 +75,15 @@ def merge(old: BaseModel, new: BaseModel) -> BaseModel:
     return type(old).model_validate(_merge(old.model_dump(), new.model_dump()))
 
 
+def _acknowledgement(reply: str, messages: list[ChatMessage]) -> str:
+    """The model's acknowledgement, unless it broke the rules for one. It sometimes copies an earlier
+    message, question included, which asks again for what the user just gave or thanks them for the
+    wrong thing. No wording of the prompt stopped that, and the turn is fine without one."""
+    reply = reply.strip()
+    copied = any(reply in m.content for m in messages if m.role == "assistant")
+    return "" if "?" in reply or copied else reply
+
+
 def chat_turn(doc_id: str, messages: list[ChatMessage], fields: BaseModel, today: date, stage: Stage) -> ChatTurn:
     """Sends the interview to the model and returns its reply with the merged fields and the new stage."""
     asked = asked_model(doc_id).model_validate(fields.model_dump())
@@ -100,7 +109,7 @@ def chat_turn(doc_id: str, messages: list[ChatMessage], fields: BaseModel, today
         question = fixed_question(doc_id, new_stage) if complete and not turn.followUp else turn.question.strip()
         if not question:
             raise ValueError("the model asked no question")
-        text = " ".join(part for part in (turn.reply.strip(), question) if part)
+        text = " ".join(part for part in (_acknowledgement(turn.reply, messages), question) if part)
     # The reply goes back in the history, so it must pass the same checks as any message.
     reply = ChatMessage(role="assistant", content=text).content
     return ChatTurn(reply=reply, fields=merged.model_dump(), stage=new_stage)
