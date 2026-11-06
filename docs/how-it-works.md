@@ -124,9 +124,11 @@ reply. A normal turn uses a few hundred. Without a limit, the AI service
 sets aside credit for an answer about twenty times longer on every message,
 so the chat could fail while the account still had credit.
 
-The server does not trust that answer blindly. It drops anything invalid,
-such as an impossible date, and a detail the AI leaves empty never erases
-one already collected. The server then sends the reply and the updated
+The server does not trust that answer blindly. It checks what code can check
+reliably (see "Complete answers" in section 5) and does not use a value that
+fails: it tells the user what is wrong in its own words, in place of the AI's
+reply. A detail the AI leaves empty never erases one already collected. The
+server then sends the reply and the updated
 details back to the browser, which shows the reply in the chat and fills in
 the preview straight away.
 
@@ -186,6 +188,42 @@ The Mutual NDA was built first and keeps its own, slightly different
 interview: it asks about every term, including how long the agreement and
 confidentiality last.
 
+### Complete answers
+
+In a legal document, a vague detail causes real problems, so each detail has a
+short definition of what a complete answer is, with examples of vague ones. The
+definitions are in the agreement's entry in the catalog, and the party details
+(company, signer, title, address) share one set, so every agreement has them.
+For example, fees need an amount and how they are charged.
+
+If an answer falls short, the AI does not record it yet and asks for exactly
+what is missing: "Elena" gets "What's Elena's last name?", "200 Market St" gets
+a question about the city, state and ZIP code, "$2,500" gets a question about
+how it is charged, and "Harbor Logistics" gets a question about its legal form
+(not for an individual). It then puts the parts together. It asks once: if the
+user says that is all there is, such as a person with only one name or a
+business with no legal form, the AI records it as given and moves on. A real
+name is never questioned just because it is uncommon.
+
+Whether an answer is vague is the AI's judgment, so it can occasionally miss one.
+The summary is where the user sees any that got through.
+
+Code checks a few things firmly, and the user cannot confirm past them:
+
+- a date must exist on the calendar (past dates are fine, since agreements are
+  sometimes backdated);
+- an NDA's number of years must be from 1 to 10;
+- a Service Level Agreement's target uptime must be above 0% and at most 100%;
+- a US notice address must have a real state and a ZIP code in the right format;
+- a governing law reading "the State of ..." must not be a misspelled US state.
+
+Code cannot tell every address apart, so it passes anything it cannot be sure
+of. An address ending in another country's name is not checked at all. One with
+no country that looks like a bad US address, such as "Perth, WA 6000", is
+refused with a request to add the country, which clears it. A state name that
+resembles no real state, as in "the State of Narnia", is left to the AI, because
+"the State of" also begins the names of real countries.
+
 ## 6. The end of the interview and checking the details
 
 The app, not the AI, runs the end of the interview, because the AI sometimes
@@ -210,7 +248,8 @@ in front of them, and whatever question it wrote itself is thrown away.
 There is one exception. The AI can flag that it needs one more answer about
 what the user just said, and then its own question is shown and the stage
 waits. It may do this if the user wants changes but has not said what they
-are, if an answer needs a double-check or a place needs clarifying, or if an
+are, if an answer is incomplete, needs a double-check or a place needs
+clarifying, or if an
 answer makes a term marked "only if" apply. Because this is the AI's own
 judgment, it can occasionally get it wrong, such as asking one more question
 about a routine term, or not asking about an "only if" term. That term then

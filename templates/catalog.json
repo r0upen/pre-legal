@@ -9,7 +9,90 @@
       "mutual-nda.md"
     ],
     "source": "https://github.com/CommonPaper/Mutual-NDA",
-    "source_commit": "2a3068b6c0ab6015c440f541d5b215bc3ac2f4cb"
+    "source_commit": "2a3068b6c0ab6015c440f541d5b215bc3ac2f4cb",
+    "requirements": [
+      {
+        "key": "purpose",
+        "label": "Purpose",
+        "complete": "What the parties are exploring or doing together, in specific terms.",
+        "vague": [
+          "business",
+          "to share information"
+        ]
+      },
+      {
+        "key": "effectiveDate",
+        "label": "Effective Date",
+        "complete": "A specific calendar day; a day that can be worked out from today, like a named weekday, also counts.",
+        "vague": [
+          "a month or season with no day",
+          "soon, or when the parties sign"
+        ]
+      },
+      {
+        "key": "mndaExpires",
+        "label": "MNDA Term",
+        "complete": "A clear choice: it ends after a set number of years, or continues until one party ends it.",
+        "vague": [
+          "for a while",
+          "as long as needed"
+        ]
+      },
+      {
+        "key": "mndaTermYears",
+        "label": "MNDA Term Length",
+        "complete": "A whole number of years.",
+        "vague": [
+          "a few years",
+          "several years"
+        ]
+      },
+      {
+        "key": "confidentialityPerpetual",
+        "label": "Term of Confidentiality",
+        "complete": "A clear choice: a number of years, or forever.",
+        "vague": [
+          "for a long time",
+          "as long as needed"
+        ]
+      },
+      {
+        "key": "confidentialityYears",
+        "label": "Confidentiality Length",
+        "complete": "A whole number of years.",
+        "vague": [
+          "a few years",
+          "several years"
+        ]
+      },
+      {
+        "key": "governingLaw",
+        "label": "Governing Law",
+        "complete": "The full official name of one state or country.",
+        "vague": [
+          "an abbreviation",
+          "a region or several places"
+        ]
+      },
+      {
+        "key": "jurisdiction",
+        "label": "Jurisdiction",
+        "complete": "The courts of one named city, with its state or country.",
+        "vague": [
+          "the local courts",
+          "a state with no city"
+        ]
+      },
+      {
+        "key": "modifications",
+        "label": "Modifications",
+        "complete": "The specific terms to change and how they should read, or \"None\".",
+        "vague": [
+          "make it fairer",
+          "change the liability section, with no new wording"
+        ]
+      }
+    ]
   },
   {
     "id": "cloud-service-agreement",
@@ -30,85 +113,161 @@
         {
           "key": "cloudService",
           "label": "Cloud Service",
-          "ask": "What cloud service or product is the customer subscribing to?"
+          "ask": "What cloud service or product is the customer subscribing to?",
+          "complete": "The name of the cloud service or product, and what it is if the name does not say.",
+          "vague": [
+            "our software",
+            "the product, with no name"
+          ]
         },
         {
           "key": "orderDate",
           "label": "Order Date",
           "ask": "When does the order start?",
+          "complete": "A specific calendar day; a day that can be worked out from today, like a named weekday, also counts.",
+          "vague": [
+            "a month or season with no day",
+            "soon, or when the parties sign"
+          ],
           "type": "date"
         },
         {
           "key": "subscriptionPeriod",
           "label": "Subscription Period",
-          "ask": "How long is each subscription period (1 year is common)?"
+          "ask": "How long is each subscription period (1 year is common)?",
+          "complete": "A specific length of time for each subscription period, with its unit.",
+          "vague": [
+            "a number with no unit",
+            "as long as needed, or ongoing, with no length"
+          ]
         },
         {
           "key": "nonRenewalNoticeDate",
           "label": "Non-Renewal Notice Date",
           "ask": "The subscription renews automatically unless a party gives notice: how many days before the end of a period must that notice come?",
+          "complete": "A number of days before the end of the period.",
+          "vague": [
+            "in advance, with no number",
+            "a number with no unit"
+          ],
           "default": "30 days before the end of the Subscription Period"
         },
         {
           "key": "fees",
           "label": "Fees",
-          "ask": "What are the fees, and how often are they charged?"
+          "ask": "What are the fees, and how often are they charged?",
+          "complete": "An amount with its currency and how it is charged: per month, per year, per unit or as a one-time fee.",
+          "vague": [
+            "an amount with no charging period and no one-time wording",
+            "reasonable fees, or to be agreed"
+          ]
         },
         {
           "key": "paymentProcess",
           "label": "Payment Process",
-          "ask": "How will the customer pay: by invoice, with how many days to pay, or by automatic payment (invoicing annually in advance, due in 30 days, is common)?"
+          "ask": "How will the customer pay: by invoice, with how many days to pay, or by automatic payment (invoicing annually in advance, due in 30 days, is common)?",
+          "complete": "The method (invoice or automatic payment), how often and, for invoices, the number of days to pay.",
+          "vague": [
+            "the usual way",
+            "by invoice, with no days to pay"
+          ]
         },
         {
           "key": "technicalSupport",
           "label": "Technical Support",
           "ask": "What technical support will the provider give?",
+          "complete": "The kind of support and when it is available.",
+          "vague": [
+            "standard support",
+            "support as needed"
+          ],
           "default": "email support during the provider's business hours"
         },
         {
           "key": "effectiveDate",
           "label": "Effective Date",
           "ask": "When should the agreement take effect?",
+          "complete": "A specific calendar day; a day that can be worked out from today, like a named weekday, also counts.",
+          "vague": [
+            "a month or season with no day",
+            "soon, or when the parties sign"
+          ],
           "type": "date"
         },
         {
           "key": "governingLaw",
           "label": "Governing Law",
-          "ask": "Which state's or country's law should govern the agreement?"
+          "ask": "Which state's or country's law should govern the agreement?",
+          "complete": "The full official name of one state or country.",
+          "vague": [
+            "an abbreviation",
+            "a region or several places"
+          ],
+          "type": "law"
         },
         {
           "key": "chosenCourts",
           "label": "Chosen Courts",
-          "ask": "Which courts should handle disputes (usually the state or federal courts in one city in the governing law's state)?"
+          "ask": "Which courts should handle disputes (usually the state or federal courts in one city in the governing law's state)?",
+          "complete": "The courts of one named city, with its state or country.",
+          "vague": [
+            "the local courts",
+            "a state with no city"
+          ]
         },
         {
           "key": "generalCapAmount",
           "label": "General Cap Amount",
           "ask": "What is the general limit on each party's liability?",
+          "complete": "A fixed amount with its currency, or a multiple of the fees over a stated period.",
+          "vague": [
+            "a reasonable amount",
+            "a number with no currency or fees to multiply"
+          ],
           "default": "1 times the fees paid or payable in the 12 months before the claim"
         },
         {
           "key": "providerCoveredClaims",
           "label": "Provider Covered Claims",
           "ask": "Which third-party claims will the provider defend the customer against?",
+          "complete": "The specific kinds of third-party claim that are covered, or \"None\".",
+          "vague": [
+            "standard claims, or the usual ones",
+            "all claims, with no kinds named"
+          ],
           "default": "any claim that the Cloud Service infringes or misappropriates a third party's intellectual property rights"
         },
         {
           "key": "customerCoveredClaims",
           "label": "Customer Covered Claims",
           "ask": "Which third-party claims will the customer defend the provider against?",
+          "complete": "The specific kinds of third-party claim that are covered, or \"None\".",
+          "vague": [
+            "standard claims, or the usual ones",
+            "all claims, with no kinds named"
+          ],
           "default": "any claim that Customer Content, or the customer's use of the Cloud Service in breach of the Agreement, infringes a third party's rights or violates the law"
         },
         {
           "key": "dpa",
           "label": "DPA",
           "ask": "Is there a Data Processing Agreement between the parties? If so, which one?",
+          "complete": "The name and date of the Data Processing Agreement, or \"None\".",
+          "vague": [
+            "yes, with no agreement named",
+            "the usual one"
+          ],
           "default": "None"
         },
         {
           "key": "modifications",
           "label": "Changes to the Standard Terms",
           "ask": "Would you like any changes to the standard terms (most people have none)?",
+          "complete": "The specific terms to change and how they should read, or \"None\".",
+          "vague": [
+            "make it fairer",
+            "change the liability section, with no new wording"
+          ],
           "default": "None"
         }
       ]
@@ -133,45 +292,86 @@
         {
           "key": "agreement",
           "label": "Agreement",
-          "ask": "Which main agreement does this Service Level Agreement attach to (its name, the parties and its date)?"
+          "ask": "Which main agreement does this Service Level Agreement attach to (its name, the parties and its date)?",
+          "complete": "The main agreement's name, its parties and its date.",
+          "vague": [
+            "our contract",
+            "a name with no parties or date"
+          ]
         },
         {
           "key": "targetUptime",
           "label": "Target Uptime",
-          "ask": "What monthly uptime should the provider aim for (99.9% is common)?"
+          "ask": "What monthly uptime should the provider aim for (99.9% is common)?",
+          "complete": "A percentage per month.",
+          "vague": [
+            "high availability",
+            "a number with no percent sign"
+          ],
+          "type": "percent"
         },
         {
           "key": "uptimeCredit",
           "label": "Uptime Credit",
           "ask": "What credit does the customer get when uptime falls below the target?",
+          "complete": "A credit, as a percentage or an amount, and when it applies.",
+          "vague": [
+            "a fair credit",
+            "a number with no percent sign or currency"
+          ],
           "default": "10% of the monthly fee if uptime is below the Target Uptime"
         },
         {
           "key": "scheduledDowntime",
           "label": "Scheduled Downtime",
           "ask": "When may the provider take the service down for planned maintenance?",
+          "complete": "How much notice is given, or a specific time window.",
+          "vague": [
+            "when needed",
+            "outside busy times, with no window or notice"
+          ],
           "default": "with at least 48 hours' notice, outside the customer's business hours"
         },
         {
           "key": "targetResponseTime",
           "label": "Target Response Time",
-          "ask": "How quickly should the provider respond to support requests (1 business day is common)?"
+          "ask": "How quickly should the provider respond to support requests (1 business day is common)?",
+          "complete": "A specific length of time, with its unit.",
+          "vague": [
+            "quickly",
+            "a number with no unit"
+          ]
         },
         {
           "key": "responseTimeCredit",
           "label": "Response Time Credit",
           "ask": "What credit does the customer get for each missed response time?",
+          "complete": "A credit, as a percentage or an amount, for each missed response.",
+          "vague": [
+            "a fair credit",
+            "a number with no percent sign or currency"
+          ],
           "default": "5% of the monthly fee per missed response"
         },
         {
           "key": "supportChannel",
           "label": "Support Channel",
-          "ask": "How should the customer contact support (e.g. an email address or ticket system)?"
+          "ask": "How should the customer contact support (e.g. an email address or ticket system)?",
+          "complete": "A specific email address, phone number, web address or named ticket system.",
+          "vague": [
+            "by email, with no address",
+            "the usual way"
+          ]
         },
         {
           "key": "modifications",
           "label": "Changes to the Standard Terms",
           "ask": "Would you like any changes to the standard terms (most people have none)?",
+          "complete": "The specific terms to change and how they should read, or \"None\".",
+          "vague": [
+            "make it fairer",
+            "change the liability section, with no new wording"
+          ],
           "default": "None"
         }
       ]
@@ -196,73 +396,138 @@
         {
           "key": "agreement",
           "label": "Agreement",
-          "ask": "Which main agreement does this Data Processing Agreement attach to (its name, the parties and its date)?"
+          "ask": "Which main agreement does this Data Processing Agreement attach to (its name, the parties and its date)?",
+          "complete": "The main agreement's name, its parties and its date.",
+          "vague": [
+            "our contract",
+            "a name with no parties or date"
+          ]
         },
         {
           "key": "categoriesOfDataSubjects",
           "label": "Categories of Data Subjects",
-          "ask": "Whose personal data will be processed (usually the customer's end users and employees)?"
+          "ask": "Whose personal data will be processed (usually the customer's end users and employees)?",
+          "complete": "The specific groups of people whose data is processed.",
+          "vague": [
+            "people",
+            "users of some kind, with no group named"
+          ]
         },
         {
           "key": "categoriesOfPersonalData",
           "label": "Categories of Personal Data",
-          "ask": "What kinds of personal data will be processed (usually names, contact details and usage data)?"
+          "ask": "What kinds of personal data will be processed (usually names, contact details and usage data)?",
+          "complete": "The specific kinds of personal data.",
+          "vague": [
+            "personal data",
+            "some customer information"
+          ]
         },
         {
           "key": "specialCategoryData",
           "label": "Special Category Data",
-          "ask": "Will any special category data, such as health, biometric or religious data, be processed (most agreements have none)?"
+          "ask": "Will any special category data, such as health, biometric or religious data, be processed (most agreements have none)?",
+          "complete": "The specific special categories involved, or \"None\".",
+          "vague": [
+            "maybe",
+            "yes, with no category named"
+          ]
         },
         {
           "key": "specialCategorySafeguards",
           "label": "Special Category Data Restrictions or Safeguards",
           "ask": "(Only if special category data is processed.) What extra restrictions or safeguards apply to it?",
+          "complete": "The specific safeguards, or \"Not applicable\" if no special category data is processed.",
+          "vague": [
+            "appropriate safeguards",
+            "industry standard measures"
+          ],
           "default": "Not applicable"
         },
         {
           "key": "frequencyOfTransfer",
           "label": "Frequency of Transfer",
           "ask": "How often will personal data be transferred to the provider?",
+          "complete": "A specific frequency, such as continuous or daily.",
+          "vague": [
+            "regularly",
+            "as needed"
+          ],
           "default": "Continuous"
         },
         {
           "key": "natureAndPurposeOfProcessing",
           "label": "Nature and Purpose of Processing",
           "ask": "What will the provider do with the personal data, and why?",
+          "complete": "What the provider does with the data and the reason for it.",
+          "vague": [
+            "processing data",
+            "a purpose with no activity"
+          ],
           "default": "receiving, holding, using and protecting the data to provide the services under the Agreement"
         },
         {
           "key": "durationOfProcessing",
           "label": "Duration of Processing",
           "ask": "How long will the processing last?",
+          "complete": "A length of time or a clear end point.",
+          "vague": [
+            "as long as needed",
+            "for a while"
+          ],
           "default": "for the term of the Agreement, plus the time needed to return or delete the data"
         },
         {
           "key": "approvedSubprocessors",
           "label": "Approved Subprocessors",
-          "ask": "Which subprocessors may the provider use (a list, or a web page that lists them)?"
+          "ask": "Which subprocessors may the provider use (a list, or a web page that lists them)?",
+          "complete": "Named subprocessors, a specific web address that lists them, or \"None\".",
+          "vague": [
+            "our vendors",
+            "the usual cloud providers"
+          ]
         },
         {
           "key": "securityPolicy",
           "label": "Security Policy",
           "ask": "Which security policy will the provider follow?",
+          "complete": "The name of a specific policy or where it is defined, or \"None\" if it is optional here.",
+          "vague": [
+            "good security",
+            "industry standard, with no policy named"
+          ],
           "default": "as defined in the Agreement"
         },
         {
           "key": "providerSecurityContact",
           "label": "Provider Security Contact",
-          "ask": "Who should the customer contact about security issues (an email address)?"
+          "ask": "Who should the customer contact about security issues (an email address)?",
+          "complete": "A specific email address.",
+          "vague": [
+            "the security team, with no address",
+            "a person's name with no address"
+          ]
         },
         {
           "key": "governingMemberState",
           "label": "Governing Member State",
           "ask": "If personal data is transferred out of the EEA or UK, which country's law governs the transfer clauses?",
+          "complete": "A named country for each kind of transfer that applies.",
+          "vague": [
+            "somewhere in Europe",
+            "the usual country"
+          ],
           "default": "Ireland for EEA transfers; England and Wales for UK transfers"
         },
         {
           "key": "modifications",
           "label": "Changes to the Standard Terms",
           "ask": "Would you like any changes to the standard terms (most people have none)?",
+          "complete": "The specific terms to change and how they should read, or \"None\".",
+          "vague": [
+            "make it fairer",
+            "change the liability section, with no new wording"
+          ],
           "default": "None"
         }
       ]
@@ -287,139 +552,260 @@
         {
           "key": "services",
           "label": "Services",
-          "ask": "What services will the provider perform?"
+          "ask": "What services will the provider perform?",
+          "complete": "What the provider will actually do, in specific terms.",
+          "vague": [
+            "consulting",
+            "help with the project"
+          ]
         },
         {
           "key": "deliverables",
           "label": "Deliverables",
-          "ask": "What will the provider deliver, if anything (some services have no deliverables)?"
+          "ask": "What will the provider deliver, if anything (some services have no deliverables)?",
+          "complete": "The specific things to be delivered, or \"None\".",
+          "vague": [
+            "the work product",
+            "whatever is needed"
+          ]
         },
         {
           "key": "timeOfAssignment",
           "label": "Time of Assignment",
           "ask": "(Only if there are deliverables.) When does ownership of deliverables pass to the customer: when created, or once paid for?",
+          "complete": "Either when created or once paid for.",
+          "vague": [
+            "at the end",
+            "eventually"
+          ],
           "default": "once paid for"
         },
         {
           "key": "rejectionPeriod",
           "label": "Rejection Period",
           "ask": "(Only if there are deliverables.) How long does the customer have to review and reject a deliverable?",
+          "complete": "A specific length of time, with its unit.",
+          "vague": [
+            "a reasonable time",
+            "a number with no unit"
+          ],
           "default": "10 business days"
         },
         {
           "key": "resubmissionPeriod",
           "label": "Resubmission Period",
           "ask": "(Only if there are deliverables.) How long does the provider have to fix and resubmit a rejected deliverable?",
+          "complete": "A specific length of time, with its unit.",
+          "vague": [
+            "promptly",
+            "a number with no unit"
+          ],
           "default": "10 business days"
         },
         {
           "key": "fees",
           "label": "Fees",
-          "ask": "What are the fees for the services (e.g. a fixed price or an hourly rate)?"
+          "ask": "What are the fees for the services (e.g. a fixed price or an hourly rate)?",
+          "complete": "An amount with its currency and how it is charged: a fixed price for the whole job, per hour, per month and so on.",
+          "vague": [
+            "an amount with no charging period and no one-time wording",
+            "reasonable fees, or to be agreed"
+          ]
         },
         {
           "key": "paymentPeriod",
           "label": "Payment Period",
           "ask": "How long does the customer have to pay each invoice?",
+          "complete": "A number of days, and when they start.",
+          "vague": [
+            "promptly",
+            "a number with no unit"
+          ],
           "default": "30 days from receipt of the invoice"
         },
         {
           "key": "sowTerm",
           "label": "SOW Term",
-          "ask": "How long will the services run?"
+          "ask": "How long will the services run?",
+          "complete": "A specific length of time for the services, or a clear end point, with its unit.",
+          "vague": [
+            "a number with no unit",
+            "as long as needed, or ongoing, with no length"
+          ]
         },
         {
           "key": "customerObligations",
           "label": "Customer Obligations",
           "ask": "What must the customer do or provide (e.g. access, information, staff)?",
+          "complete": "The specific things the customer must do or provide, or \"None\".",
+          "vague": [
+            "cooperate",
+            "whatever is needed"
+          ],
           "default": "None"
         },
         {
           "key": "effectiveDate",
           "label": "Effective Date",
           "ask": "When should the agreement take effect?",
+          "complete": "A specific calendar day; a day that can be worked out from today, like a named weekday, also counts.",
+          "vague": [
+            "a month or season with no day",
+            "soon, or when the parties sign"
+          ],
           "type": "date"
         },
         {
           "key": "governingLaw",
           "label": "Governing Law",
-          "ask": "Which state's or country's law should govern the agreement?"
+          "ask": "Which state's or country's law should govern the agreement?",
+          "complete": "The full official name of one state or country.",
+          "vague": [
+            "an abbreviation",
+            "a region or several places"
+          ],
+          "type": "law"
         },
         {
           "key": "chosenCourts",
           "label": "Chosen Courts",
-          "ask": "Which courts should handle disputes (usually the state or federal courts in one city in the governing law's state)?"
+          "ask": "Which courts should handle disputes (usually the state or federal courts in one city in the governing law's state)?",
+          "complete": "The courts of one named city, with its state or country.",
+          "vague": [
+            "the local courts",
+            "a state with no city"
+          ]
         },
         {
           "key": "generalCapAmount",
           "label": "General Cap Amount",
           "ask": "What is the general limit on each party's liability?",
+          "complete": "A fixed amount with its currency, or a multiple of the fees over a stated period.",
+          "vague": [
+            "a reasonable amount",
+            "a number with no currency or fees to multiply"
+          ],
           "default": "1 times the fees paid or payable in the 12 months before the claim"
         },
         {
           "key": "increasedClaims",
           "label": "Increased Claims",
           "ask": "Should any kinds of claims (e.g. breach of confidentiality or data protection) have a higher liability limit?",
+          "complete": "The specific kinds of claim that get the higher liability limit, or \"None\".",
+          "vague": [
+            "the serious ones",
+            "all claims, with no kinds named"
+          ],
           "default": "None"
         },
         {
           "key": "increasedCapAmount",
           "label": "Increased Cap Amount",
           "ask": "(Only if there are Increased Claims.) What is the higher liability limit for them?",
+          "complete": "A fixed amount with its currency or a multiple of the fees over a stated period, or \"Not applicable\" if there are no Increased Claims.",
+          "vague": [
+            "higher than usual",
+            "a number with no currency or fees to multiply"
+          ],
           "default": "Not applicable"
         },
         {
           "key": "unlimitedClaims",
           "label": "Unlimited Claims",
           "ask": "Should any kinds of claims have no liability limit at all?",
+          "complete": "The specific kinds of claim that have no liability limit, or \"None\".",
+          "vague": [
+            "the serious ones",
+            "all claims, with no kinds named"
+          ],
           "default": "None"
         },
         {
           "key": "providerCoveredClaims",
           "label": "Provider Covered Claims",
           "ask": "Which third-party claims will the provider defend the customer against?",
+          "complete": "The specific kinds of third-party claim that are covered, or \"None\".",
+          "vague": [
+            "standard claims, or the usual ones",
+            "all claims, with no kinds named"
+          ],
           "default": "any claim that the Deliverables infringe or misappropriate a third party's intellectual property rights"
         },
         {
           "key": "customerCoveredClaims",
           "label": "Customer Covered Claims",
           "ask": "Which third-party claims will the customer defend the provider against?",
+          "complete": "The specific kinds of third-party claim that are covered, or \"None\".",
+          "vague": [
+            "standard claims, or the usual ones",
+            "all claims, with no kinds named"
+          ],
           "default": "any claim that materials the customer provides infringe a third party's rights"
         },
         {
           "key": "additionalWarranties",
           "label": "Additional Warranties",
           "ask": "Does either party give any warranties beyond the standard terms?",
+          "complete": "The specific warranties and who gives them, or \"None\".",
+          "vague": [
+            "the usual warranties",
+            "some extra protection"
+          ],
           "default": "None"
         },
         {
           "key": "insuranceMinimums",
           "label": "Insurance Minimums",
           "ask": "What insurance must the provider carry, if any?",
+          "complete": "The kinds of insurance and their amounts, or \"None\".",
+          "vague": [
+            "adequate insurance",
+            "a kind of insurance with no amount"
+          ],
           "default": "None"
         },
         {
           "key": "dpa",
           "label": "DPA",
           "ask": "Is there a Data Processing Agreement between the parties? If so, which one?",
+          "complete": "The name and date of the Data Processing Agreement, or \"None\".",
+          "vague": [
+            "yes, with no agreement named",
+            "the usual one"
+          ],
           "default": "None"
         },
         {
           "key": "securityPolicy",
           "label": "Security Policy",
           "ask": "Which security policy will the provider follow, if any?",
+          "complete": "The name of a specific policy or where it is defined, or \"None\" if it is optional here.",
+          "vague": [
+            "good security",
+            "industry standard, with no policy named"
+          ],
           "default": "None"
         },
         {
           "key": "customerPolicies",
           "label": "Customer Policies",
           "ask": "Which customer policies must the provider follow, if any?",
+          "complete": "The names of the specific policies, or \"None\".",
+          "vague": [
+            "our policies",
+            "the usual rules"
+          ],
           "default": "None"
         },
         {
           "key": "modifications",
           "label": "Changes to the Standard Terms",
           "ask": "Would you like any changes to the standard terms (most people have none)?",
+          "complete": "The specific terms to change and how they should read, or \"None\".",
+          "vague": [
+            "make it fairer",
+            "change the liability section, with no new wording"
+          ],
           "default": "None"
         }
       ]
@@ -444,120 +830,226 @@
         {
           "key": "software",
           "label": "Software",
-          "ask": "What software is being licensed?"
+          "ask": "What software is being licensed?",
+          "complete": "The name of the software, and what it is if the name does not say.",
+          "vague": [
+            "our software",
+            "the app, with no name"
+          ]
         },
         {
           "key": "orderDate",
           "label": "Order Date",
           "ask": "When does the order start?",
+          "complete": "A specific calendar day; a day that can be worked out from today, like a named weekday, also counts.",
+          "vague": [
+            "a month or season with no day",
+            "soon, or when the parties sign"
+          ],
           "type": "date"
         },
         {
           "key": "subscriptionPeriod",
           "label": "Subscription Period",
-          "ask": "How long is each subscription period (1 year is common)?"
+          "ask": "How long is each subscription period (1 year is common)?",
+          "complete": "A specific length of time for each subscription period, with its unit.",
+          "vague": [
+            "a number with no unit",
+            "as long as needed, or ongoing, with no length"
+          ]
         },
         {
           "key": "nonRenewalNoticeDate",
           "label": "Non-Renewal Notice Date",
           "ask": "The license renews automatically unless a party gives notice: how many days before the end of a period must that notice come?",
+          "complete": "A number of days before the end of the period.",
+          "vague": [
+            "in advance, with no number",
+            "a number with no unit"
+          ],
           "default": "30 days before the end of the Subscription Period"
         },
         {
           "key": "fees",
           "label": "Fees",
-          "ask": "What are the fees, and how often are they charged?"
+          "ask": "What are the fees, and how often are they charged?",
+          "complete": "An amount with its currency and how it is charged: per month, per year, per unit or as a one-time fee.",
+          "vague": [
+            "an amount with no charging period and no one-time wording",
+            "reasonable fees, or to be agreed"
+          ]
         },
         {
           "key": "paymentProcess",
           "label": "Payment Process",
-          "ask": "How will the customer pay: by invoice, with how many days to pay, or by automatic payment (invoicing annually in advance, due in 30 days, is common)?"
+          "ask": "How will the customer pay: by invoice, with how many days to pay, or by automatic payment (invoicing annually in advance, due in 30 days, is common)?",
+          "complete": "The method (invoice or automatic payment), how often and, for invoices, the number of days to pay.",
+          "vague": [
+            "the usual way",
+            "by invoice, with no days to pay"
+          ]
         },
         {
           "key": "permittedUses",
           "label": "Permitted Uses",
           "ask": "What may the customer use the software for?",
+          "complete": "The specific uses allowed.",
+          "vague": [
+            "normal use",
+            "anything reasonable"
+          ],
           "default": "the customer's internal business purposes"
         },
         {
           "key": "licenseLimits",
           "label": "License Limits",
-          "ask": "Are there limits on use, such as a number of users, devices or installations (many licenses have none)?"
+          "ask": "Are there limits on use, such as a number of users, devices or installations (many licenses have none)?",
+          "complete": "The specific limits, with their numbers, or \"None\".",
+          "vague": [
+            "a few users",
+            "a kind of limit with no number"
+          ]
         },
         {
           "key": "warrantyPeriod",
           "label": "Warranty Period",
           "ask": "For how long does the provider warrant that the software works as documented?",
+          "complete": "A specific length of time, with its unit and when it starts.",
+          "vague": [
+            "a reasonable period",
+            "a number with no unit"
+          ],
           "default": "90 days from the Order Date"
         },
         {
           "key": "deletionProcedure",
           "label": "Deletion Procedure",
           "ask": "When the license ends, how must the customer remove the software?",
+          "complete": "The specific steps the customer must take.",
+          "vague": [
+            "remove it",
+            "the usual way"
+          ],
           "default": "uninstall the Software, delete all copies and confirm this in writing"
         },
         {
           "key": "effectiveDate",
           "label": "Effective Date",
           "ask": "When should the agreement take effect?",
+          "complete": "A specific calendar day; a day that can be worked out from today, like a named weekday, also counts.",
+          "vague": [
+            "a month or season with no day",
+            "soon, or when the parties sign"
+          ],
           "type": "date"
         },
         {
           "key": "governingLaw",
           "label": "Governing Law",
-          "ask": "Which state's or country's law should govern the agreement?"
+          "ask": "Which state's or country's law should govern the agreement?",
+          "complete": "The full official name of one state or country.",
+          "vague": [
+            "an abbreviation",
+            "a region or several places"
+          ],
+          "type": "law"
         },
         {
           "key": "chosenCourts",
           "label": "Chosen Courts",
-          "ask": "Which courts should handle disputes (usually the state or federal courts in one city in the governing law's state)?"
+          "ask": "Which courts should handle disputes (usually the state or federal courts in one city in the governing law's state)?",
+          "complete": "The courts of one named city, with its state or country.",
+          "vague": [
+            "the local courts",
+            "a state with no city"
+          ]
         },
         {
           "key": "generalCapAmount",
           "label": "General Cap Amount",
           "ask": "What is the general limit on each party's liability?",
+          "complete": "A fixed amount with its currency, or a multiple of the fees over a stated period.",
+          "vague": [
+            "a reasonable amount",
+            "a number with no currency or fees to multiply"
+          ],
           "default": "1 times the fees paid or payable in the 12 months before the claim"
         },
         {
           "key": "increasedClaims",
           "label": "Increased Claims",
           "ask": "Should any kinds of claims (e.g. breach of confidentiality or data protection) have a higher liability limit?",
+          "complete": "The specific kinds of claim that get the higher liability limit, or \"None\".",
+          "vague": [
+            "the serious ones",
+            "all claims, with no kinds named"
+          ],
           "default": "None"
         },
         {
           "key": "increasedCapAmount",
           "label": "Increased Cap Amount",
           "ask": "(Only if there are Increased Claims.) What is the higher liability limit for them?",
+          "complete": "A fixed amount with its currency or a multiple of the fees over a stated period, or \"Not applicable\" if there are no Increased Claims.",
+          "vague": [
+            "higher than usual",
+            "a number with no currency or fees to multiply"
+          ],
           "default": "Not applicable"
         },
         {
           "key": "unlimitedClaims",
           "label": "Unlimited Claims",
           "ask": "Should any kinds of claims have no liability limit at all?",
+          "complete": "The specific kinds of claim that have no liability limit, or \"None\".",
+          "vague": [
+            "the serious ones",
+            "all claims, with no kinds named"
+          ],
           "default": "None"
         },
         {
           "key": "providerCoveredClaims",
           "label": "Provider Covered Claims",
           "ask": "Which third-party claims will the provider defend the customer against?",
+          "complete": "The specific kinds of third-party claim that are covered, or \"None\".",
+          "vague": [
+            "standard claims, or the usual ones",
+            "all claims, with no kinds named"
+          ],
           "default": "any claim that the Software infringes or misappropriates a third party's intellectual property rights"
         },
         {
           "key": "customerCoveredClaims",
           "label": "Customer Covered Claims",
           "ask": "Which third-party claims will the customer defend the provider against?",
+          "complete": "The specific kinds of third-party claim that are covered, or \"None\".",
+          "vague": [
+            "standard claims, or the usual ones",
+            "all claims, with no kinds named"
+          ],
           "default": "any claim arising from the customer's use of the Software in breach of the Agreement"
         },
         {
           "key": "additionalWarranties",
           "label": "Additional Warranties",
           "ask": "Does either party give any warranties beyond the standard terms?",
+          "complete": "The specific warranties and who gives them, or \"None\".",
+          "vague": [
+            "the usual warranties",
+            "some extra protection"
+          ],
           "default": "None"
         },
         {
           "key": "modifications",
           "label": "Changes to the Standard Terms",
           "ask": "Would you like any changes to the standard terms (most people have none)?",
+          "complete": "The specific terms to change and how they should read, or \"None\".",
+          "vague": [
+            "make it fairer",
+            "change the liability section, with no new wording"
+          ],
           "default": "None"
         }
       ]
@@ -582,44 +1074,85 @@
         {
           "key": "product",
           "label": "Product",
-          "ask": "What product will the customer try during the pilot?"
+          "ask": "What product will the customer try during the pilot?",
+          "complete": "The name of the product, and what it is if the name does not say.",
+          "vague": [
+            "our product",
+            "the new thing"
+          ]
         },
         {
           "key": "pilotPeriod",
           "label": "Pilot Period",
-          "ask": "How long will the pilot last (90 days is common)?"
+          "ask": "How long will the pilot last (90 days is common)?",
+          "complete": "A specific length of time for the pilot, with its unit.",
+          "vague": [
+            "a number with no unit",
+            "as long as needed, or ongoing, with no length"
+          ]
         },
         {
           "key": "fees",
           "label": "Fees",
-          "ask": "Will the customer pay anything for the pilot, and if so how much (many pilots are free)?"
+          "ask": "Will the customer pay anything for the pilot, and if so how much and how often (many pilots are free)?",
+          "complete": "An amount with its currency and how it is charged (per month, per year, per unit or as a one-time fee), or \"None\" if it is free.",
+          "vague": [
+            "an amount with no charging period and no one-time wording",
+            "reasonable fees, or to be agreed"
+          ]
         },
         {
           "key": "effectiveDate",
           "label": "Effective Date",
           "ask": "When should the agreement take effect?",
+          "complete": "A specific calendar day; a day that can be worked out from today, like a named weekday, also counts.",
+          "vague": [
+            "a month or season with no day",
+            "soon, or when the parties sign"
+          ],
           "type": "date"
         },
         {
           "key": "governingLaw",
           "label": "Governing Law",
-          "ask": "Which state's or country's law should govern the agreement?"
+          "ask": "Which state's or country's law should govern the agreement?",
+          "complete": "The full official name of one state or country.",
+          "vague": [
+            "an abbreviation",
+            "a region or several places"
+          ],
+          "type": "law"
         },
         {
           "key": "chosenCourts",
           "label": "Chosen Courts",
-          "ask": "Which courts should handle disputes (usually the state or federal courts in one city in the governing law's state)?"
+          "ask": "Which courts should handle disputes (usually the state or federal courts in one city in the governing law's state)?",
+          "complete": "The courts of one named city, with its state or country.",
+          "vague": [
+            "the local courts",
+            "a state with no city"
+          ]
         },
         {
           "key": "generalCapAmount",
           "label": "General Cap Amount",
           "ask": "What is the general limit on each party's liability?",
+          "complete": "A fixed amount with its currency, or a multiple of the fees over a stated period.",
+          "vague": [
+            "a reasonable amount",
+            "a number with no currency or fees to multiply"
+          ],
           "default": "$10,000"
         },
         {
           "key": "modifications",
           "label": "Changes to the Standard Terms",
           "ask": "Would you like any changes to the standard terms (most people have none)?",
+          "complete": "The specific terms to change and how they should read, or \"None\".",
+          "vague": [
+            "make it fairer",
+            "change the liability section, with no new wording"
+          ],
           "default": "None"
         }
       ]
@@ -644,43 +1177,84 @@
         {
           "key": "product",
           "label": "Product",
-          "ask": "What product will the design partner get early access to?"
+          "ask": "What product will the design partner get early access to?",
+          "complete": "The name of the product, and what it is if the name does not say.",
+          "vague": [
+            "our product",
+            "the new thing"
+          ]
         },
         {
           "key": "program",
           "label": "Program",
-          "ask": "What will each party do in the program (e.g. the partner gives feedback in regular sessions; the provider gives early access or a discount)?"
+          "ask": "What will each party do in the program (e.g. the partner gives feedback in regular sessions; the provider gives early access or a discount)?",
+          "complete": "What each party will specifically do.",
+          "vague": [
+            "work together",
+            "what only one party will do"
+          ]
         },
         {
           "key": "term",
           "label": "Term",
-          "ask": "How long will the program run (6 months is common)?"
+          "ask": "How long will the program run (6 months is common)?",
+          "complete": "A specific length of time for the program, with its unit.",
+          "vague": [
+            "a number with no unit",
+            "as long as needed, or ongoing, with no length"
+          ]
         },
         {
           "key": "fees",
           "label": "Fees",
-          "ask": "Will the partner pay anything, and if so how much and how often (many programs are free)?"
+          "ask": "Will the partner pay anything, and if so how much and how often (many programs are free)?",
+          "complete": "An amount with its currency and how it is charged (per month, per year, per unit or as a one-time fee), or \"None\" if it is free.",
+          "vague": [
+            "an amount with no charging period and no one-time wording",
+            "reasonable fees, or to be agreed"
+          ]
         },
         {
           "key": "effectiveDate",
           "label": "Effective Date",
           "ask": "When should the agreement take effect?",
+          "complete": "A specific calendar day; a day that can be worked out from today, like a named weekday, also counts.",
+          "vague": [
+            "a month or season with no day",
+            "soon, or when the parties sign"
+          ],
           "type": "date"
         },
         {
           "key": "governingLaw",
           "label": "Governing Law",
-          "ask": "Which state's or country's law should govern the agreement?"
+          "ask": "Which state's or country's law should govern the agreement?",
+          "complete": "The full official name of one state or country.",
+          "vague": [
+            "an abbreviation",
+            "a region or several places"
+          ],
+          "type": "law"
         },
         {
           "key": "chosenCourts",
           "label": "Chosen Courts",
-          "ask": "Which courts should handle disputes (usually the state or federal courts in one city in the governing law's state)?"
+          "ask": "Which courts should handle disputes (usually the state or federal courts in one city in the governing law's state)?",
+          "complete": "The courts of one named city, with its state or country.",
+          "vague": [
+            "the local courts",
+            "a state with no city"
+          ]
         },
         {
           "key": "modifications",
           "label": "Changes to the Standard Terms",
           "ask": "Would you like any changes to the standard terms (most people have none)?",
+          "complete": "The specific terms to change and how they should read, or \"None\".",
+          "vague": [
+            "make it fairer",
+            "change the liability section, with no new wording"
+          ],
           "default": "None"
         }
       ]
@@ -705,110 +1279,206 @@
         {
           "key": "companyObligations",
           "label": "Company Obligations",
-          "ask": "What will the company do for the partnership (e.g. promotion, referrals, payments, brand use)?"
+          "ask": "What will the company do for the partnership (e.g. promotion, referrals, payments, brand use)?",
+          "complete": "The specific things the company will do.",
+          "vague": [
+            "support the partner",
+            "help out"
+          ]
         },
         {
           "key": "partnerObligations",
           "label": "Partner Obligations",
-          "ask": "What will the partner do for the partnership?"
+          "ask": "What will the partner do for the partnership?",
+          "complete": "The specific things the partner will do.",
+          "vague": [
+            "support the company",
+            "help out"
+          ]
         },
         {
           "key": "territory",
           "label": "Territory",
           "ask": "Where does the partnership apply?",
+          "complete": "The named countries or regions, or \"Worldwide\".",
+          "vague": [
+            "our markets",
+            "nearby areas"
+          ],
           "default": "Worldwide"
         },
         {
           "key": "paymentProcess",
           "label": "Payment Process",
           "ask": "(Only if either party pays fees.) How will payments be made?",
+          "complete": "How payments are made, or \"Not applicable\" if no fees are paid.",
+          "vague": [
+            "the usual way",
+            "we will work it out"
+          ],
           "default": "Not applicable"
         },
         {
           "key": "paymentSchedule",
           "label": "Payment Schedule",
           "ask": "(Only if either party pays fees.) When are payments due?",
+          "complete": "When payments are due, or \"Not applicable\" if no fees are paid.",
+          "vague": [
+            "regularly",
+            "when convenient"
+          ],
           "default": "Not applicable"
         },
         {
           "key": "endDate",
           "label": "End Date",
-          "ask": "When does the partnership end (1 year after the Effective Date is common)?"
+          "ask": "When does the partnership end (1 year after the Effective Date is common)?",
+          "complete": "A specific day, or a length of time from the Effective Date.",
+          "vague": [
+            "next year, with no day",
+            "when the parties agree"
+          ]
         },
         {
           "key": "effectiveDate",
           "label": "Effective Date",
           "ask": "When should the agreement take effect?",
+          "complete": "A specific calendar day; a day that can be worked out from today, like a named weekday, also counts.",
+          "vague": [
+            "a month or season with no day",
+            "soon, or when the parties sign"
+          ],
           "type": "date"
         },
         {
           "key": "governingLaw",
           "label": "Governing Law",
-          "ask": "Which state's or country's law should govern the agreement?"
+          "ask": "Which state's or country's law should govern the agreement?",
+          "complete": "The full official name of one state or country.",
+          "vague": [
+            "an abbreviation",
+            "a region or several places"
+          ],
+          "type": "law"
         },
         {
           "key": "chosenCourts",
           "label": "Chosen Courts",
-          "ask": "Which courts should handle disputes (usually the state or federal courts in one city in the governing law's state)?"
+          "ask": "Which courts should handle disputes (usually the state or federal courts in one city in the governing law's state)?",
+          "complete": "The courts of one named city, with its state or country.",
+          "vague": [
+            "the local courts",
+            "a state with no city"
+          ]
         },
         {
           "key": "generalCapAmount",
           "label": "General Cap Amount",
           "ask": "What is the general limit on each party's liability?",
+          "complete": "A fixed amount with its currency, or a multiple of the fees over a stated period.",
+          "vague": [
+            "a reasonable amount",
+            "a number with no currency or fees to multiply"
+          ],
           "default": "1 times the fees paid or payable in the 12 months before the claim"
         },
         {
           "key": "increasedClaims",
           "label": "Increased Claims",
           "ask": "Should any kinds of claims (e.g. breach of confidentiality or data protection) have a higher liability limit?",
+          "complete": "The specific kinds of claim that get the higher liability limit, or \"None\".",
+          "vague": [
+            "the serious ones",
+            "all claims, with no kinds named"
+          ],
           "default": "None"
         },
         {
           "key": "increasedCapAmount",
           "label": "Increased Cap Amount",
           "ask": "(Only if there are Increased Claims.) What is the higher liability limit for them?",
+          "complete": "A fixed amount with its currency or a multiple of the fees over a stated period, or \"Not applicable\" if there are no Increased Claims.",
+          "vague": [
+            "higher than usual",
+            "a number with no currency or fees to multiply"
+          ],
           "default": "Not applicable"
         },
         {
           "key": "unlimitedClaims",
           "label": "Unlimited Claims",
           "ask": "Should any kinds of claims have no liability limit at all?",
+          "complete": "The specific kinds of claim that have no liability limit, or \"None\".",
+          "vague": [
+            "the serious ones",
+            "all claims, with no kinds named"
+          ],
           "default": "None"
         },
         {
           "key": "companyCoveredClaims",
           "label": "Company Covered Claims",
           "ask": "Which third-party claims will the company defend the partner against?",
+          "complete": "The specific kinds of third-party claim that are covered, or \"None\".",
+          "vague": [
+            "standard claims, or the usual ones",
+            "all claims, with no kinds named"
+          ],
           "default": "any claim arising from the company's gross negligence or willful misconduct"
         },
         {
           "key": "partnerCoveredClaims",
           "label": "Partner Covered Claims",
           "ask": "Which third-party claims will the partner defend the company against?",
+          "complete": "The specific kinds of third-party claim that are covered, or \"None\".",
+          "vague": [
+            "standard claims, or the usual ones",
+            "all claims, with no kinds named"
+          ],
           "default": "any claim arising from the partner's gross negligence or willful misconduct"
         },
         {
           "key": "additionalWarranties",
           "label": "Additional Warranties",
           "ask": "Does either party give any warranties beyond the standard terms?",
+          "complete": "The specific warranties and who gives them, or \"None\".",
+          "vague": [
+            "the usual warranties",
+            "some extra protection"
+          ],
           "default": "None"
         },
         {
           "key": "dpa",
           "label": "DPA",
           "ask": "Is there a Data Processing Agreement between the parties? If so, which one?",
+          "complete": "The name and date of the Data Processing Agreement, or \"None\".",
+          "vague": [
+            "yes, with no agreement named",
+            "the usual one"
+          ],
           "default": "None"
         },
         {
           "key": "brandGuidelines",
           "label": "Brand Guidelines",
           "ask": "Which brand guidelines must each party follow when using the other's brand, if any?",
+          "complete": "The name or web address of specific guidelines, or \"None\".",
+          "vague": [
+            "our guidelines, with no name or address",
+            "the usual rules"
+          ],
           "default": "None"
         },
         {
           "key": "modifications",
           "label": "Changes to the Standard Terms",
           "ask": "Would you like any changes to the standard terms (most people have none)?",
+          "complete": "The specific terms to change and how they should read, or \"None\".",
+          "vague": [
+            "make it fairer",
+            "change the liability section, with no new wording"
+          ],
           "default": "None"
         }
       ]
@@ -833,30 +1503,55 @@
         {
           "key": "agreement",
           "label": "Agreement",
-          "ask": "Which main agreement does this Business Associate Agreement attach to (its name, the parties and its date)?"
+          "ask": "Which main agreement does this Business Associate Agreement attach to (its name, the parties and its date)?",
+          "complete": "The main agreement's name, its parties and its date.",
+          "vague": [
+            "our contract",
+            "a name with no parties or date"
+          ]
         },
         {
           "key": "baaEffectiveDate",
           "label": "BAA Effective Date",
           "ask": "When should this agreement take effect?",
+          "complete": "A specific calendar day; a day that can be worked out from today, like a named weekday, also counts.",
+          "vague": [
+            "a month or season with no day",
+            "soon, or when the parties sign"
+          ],
           "type": "date"
         },
         {
           "key": "breachNotificationPeriod",
           "label": "Breach Notification Period",
           "ask": "How soon must the provider report a breach of protected health information?",
+          "complete": "A specific length of time, with its unit and when it starts.",
+          "vague": [
+            "promptly",
+            "as soon as possible"
+          ],
           "default": "within 30 days after discovery"
         },
         {
           "key": "limitations",
           "label": "Limitations",
           "ask": "Should the provider be restricted from subcontracting, offshoring, de-identifying or aggregating the data?",
+          "complete": "The specific restrictions, or \"None\".",
+          "vague": [
+            "some limits",
+            "the usual restrictions"
+          ],
           "default": "None"
         },
         {
           "key": "modifications",
           "label": "Changes to the Standard Terms",
           "ask": "Would you like any changes to the standard terms (most people have none)?",
+          "complete": "The specific terms to change and how they should read, or \"None\".",
+          "vague": [
+            "make it fairer",
+            "change the liability section, with no new wording"
+          ],
           "default": "None"
         }
       ]
@@ -881,35 +1576,65 @@
         {
           "key": "agreement",
           "label": "Agreement",
-          "ask": "Which main agreement does this AI Addendum attach to (its name, the parties and its date)?"
+          "ask": "Which main agreement does this AI Addendum attach to (its name, the parties and its date)?",
+          "complete": "The main agreement's name, its parties and its date.",
+          "vague": [
+            "our contract",
+            "a name with no parties or date"
+          ]
         },
         {
           "key": "trainingData",
           "label": "Training Data",
-          "ask": "May the provider train AI models on the customer's inputs or outputs, and if so on which data (most customers say no)?"
+          "ask": "May the provider train AI models on the customer's inputs or outputs, and if so on which data (most customers say no)?",
+          "complete": "Either no training, or the specific data that may be used.",
+          "vague": [
+            "some data",
+            "maybe"
+          ]
         },
         {
           "key": "trainingPurposes",
           "label": "Training Purposes",
           "ask": "(Only if there is training data.) For what purposes may it be used?",
+          "complete": "The specific purposes, or \"Not applicable\" if there is no training data.",
+          "vague": [
+            "improving things",
+            "any reasonable purpose"
+          ],
           "default": "Not applicable"
         },
         {
           "key": "trainingRestrictions",
           "label": "Training Restrictions",
           "ask": "Are there restrictions on how training is done (e.g. de-identifying the data first)?",
+          "complete": "The specific restrictions, or \"None\".",
+          "vague": [
+            "be careful with it",
+            "the usual restrictions"
+          ],
           "default": "None"
         },
         {
           "key": "improvementRestrictions",
           "label": "Improvement Restrictions",
           "ask": "Are there limits on using the customer's data to improve the product in other ways?",
+          "complete": "The specific limits, or \"None\".",
+          "vague": [
+            "some limits",
+            "be reasonable"
+          ],
           "default": "None"
         },
         {
           "key": "modifications",
           "label": "Changes to the Standard Terms",
           "ask": "Would you like any changes to the standard terms (most people have none)?",
+          "complete": "The specific terms to change and how they should read, or \"None\".",
+          "vague": [
+            "make it fairer",
+            "change the liability section, with no new wording"
+          ],
           "default": "None"
         }
       ]

@@ -118,6 +118,22 @@ are set up. Update this section after every ticket.
   did not appear in unrelated replies). `/api/choose` no longer suggests a poor fit. Live runs:
   conditional "(Only if ...)" terms were skipped in about 1 of 18 runs, and the
   model sometimes asks about other routine terms as well.
+- PL-14: every field has `complete` and `vague` in the catalog (the NDA's in a
+  `requirements` list, the parties' in `PARTY_REQUIREMENTS` in `prompts.py`), and
+  `test_catalog.py` fails if one is missing. `vague` holds descriptions, not concrete
+  values (PL-10). The AI does not record an incomplete answer, sets `followUp`, asks
+  once, and accepts it if the user says that is all there is. `checks.py` holds firm
+  code checks; `fields.py` runs them while parsing the model's output and lists
+  what is wrong in the parse context's `rejected`. `chat_turn` then replaces the
+  model's reply with `rejection_text` and the stage waits. Field `type` also takes
+  `law` and `percent`. Checks pass anything uncertain so non-U.S. values are not
+  refused. The prompts tell the model to record bad dates and years as given, or
+  code never sees them, but it sometimes asks about a bad state or year itself.
+  The value is still not recorded. Live runs: follow-ups are reliable for signer,
+  address and fees; a company with no legal form was missed in about 1 of 11, and
+  the model sometimes records the partial value while asking. Testing the last
+  missing detail on its own (not in interview order) can draw a question about a
+  detail already held; this did not happen in full interviews.
 
 ## Development process
 - Read the ticket with the Atlassian tools before starting.

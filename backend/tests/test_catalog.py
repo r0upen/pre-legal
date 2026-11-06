@@ -5,6 +5,8 @@ from pathlib import Path
 
 import pytest
 
+from app.fields import NdaFields
+
 TEMPLATES_DIR = Path(__file__).resolve().parents[2] / "templates"
 REQUIRED_FIELDS = {"id", "name", "description", "version", "files", "source", "source_commit"}
 
@@ -58,7 +60,41 @@ def test_cover_page_specs_are_well_formed(catalog):
         for field in spec["fields"]:
             assert field["key"].isidentifier() and field["key"] not in {"party1", "party2"}, field
             assert field["label"] and field["ask"], field
-            assert field.get("type", "text") in {"text", "date"}, field
-            assert set(field) <= {"key", "label", "ask", "type", "default"}, field
+            assert field.get("type", "text") in {"text", "date", "law", "percent"}, field
+            assert set(field) <= {"key", "label", "ask", "complete", "vague", "type", "default"}, field
             assert field["ask"].endswith("?"), field
             assert not (field.get("type") == "date" and "default" in field), field
+
+
+# PL-14: every field says what a complete answer is, so a new document cannot leave it out.
+def _requirements(entry):
+    return entry["requirements"] if entry["id"] == "mutual-nda" else entry["coverPage"]["fields"]
+
+
+def test_every_field_defines_a_complete_answer(catalog):
+    for entry in catalog:
+        for field in _requirements(entry):
+            assert field["complete"].endswith((".", '."')), field
+            assert field["vague"] and all(field["vague"]), field
+
+
+def test_definitions_have_no_braces_the_prompt_format_would_choke_on(catalog):
+    for entry in catalog:
+        for field in _requirements(entry):
+            assert not set("{}") & set(field["complete"] + "".join(field["vague"])), field
+
+
+def test_the_nda_requirements_cover_exactly_its_fields(catalog):
+    entry = next(e for e in catalog if e["id"] == "mutual-nda")
+    keys = [f["key"] for f in entry["requirements"]]
+    assert set(keys) == set(NdaFields.model_fields) - {"party1", "party2"}
+    assert len(keys) == len(set(keys))
+
+
+def test_fields_that_code_checks_keep_their_type(catalog):
+    for entry in catalog:
+        for field in entry.get("coverPage", {}).get("fields", []):
+            if field["key"] == "governingLaw":
+                assert field["type"] == "law", entry["id"]
+            if field["key"] == "targetUptime":
+                assert field["type"] == "percent", entry["id"]
