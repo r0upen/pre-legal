@@ -21,6 +21,12 @@ CONFIRMED_NOTICE = (
 )
 
 
+def rejection_text(problems: list[str]) -> str:
+    """What the app says when a value failed a code check. The app says it, not the model, whose reply
+    may already claim the value was recorded."""
+    return f"Sorry, I couldn't use that. {' '.join(dict.fromkeys(problems))} Could you send it again?"
+
+
 def next_stage(stage: Stage, complete: bool, changed: bool, follow_up: bool) -> Stage:
     """The stage after one turn. A follow-up means the model still needs an answer, so the stage waits."""
     if not complete:

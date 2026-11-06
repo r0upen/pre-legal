@@ -3,6 +3,49 @@ document (built from its cover page spec) and choosing a document."""
 
 from app.documents import CATALOG, DOCUMENTS, NDA, spec_fields
 
+# The parties are in no document's spec: every document has the same four details.
+PARTY_REQUIREMENTS = [
+    {
+        "label": "Party's name",
+        "complete": "A company's full name with its legal form (LLC, Inc., Ltd. and so on), or the name alone once the user says it has none; or an individual's full name.",
+        "vague": ["a company name with no legal form", "a legal form that does not exist, likely a typo"],
+    },
+    {"label": "Signer", "complete": "A first and last name, or one name once the user says it is the only one.", "vague": ["a first name only", "a job title instead of a name"]},
+    {"label": "Signer's title", "complete": "A job title.", "vague": ["a placeholder", "the person's name"]},
+    {
+        "label": "Notice address",
+        "complete": "Street, city, state and ZIP code; outside the US, street, city, region, postal code and country.",
+        "vague": ["a street with no city, state or ZIP code", "an email address"],
+    },
+]
+
+# Shared by both interview prompts. The checks these mention are in checks.py and fields.py.
+COMPLETENESS_RULES = """- Every detail must be complete and specific, as described under "What counts as complete". \
+If an answer is vague or only partly complete, do not record that detail yet: set followUp to true \
+and ask in question for exactly what is missing, mentioning what you have, e.g. "And what is <their \
+first name>'s last name?" When the user replies, put the earlier part from the conversation together \
+with the new part and record the whole value. If they send the whole answer again rather than only \
+the missing part, that is complete too: record it, set followUp to false and move on. Record any other complete details from the same message. \
+A company's name with no legal form, or with one that does not exist, counts as partly complete, \
+so do not record it yet either, until the user says it has none: then record the name as they gave it.
+- If a company's name has no legal form (LLC, Inc., Ltd. and so on), ask which it is, offering the \
+common ones. If its legal form does not exist, likely a typo, repeat what they wrote and ask whether \
+they mean the real form it most resembles. Never ask this of an individual, or of a body that has no legal form, like a university \
+or a government agency.
+- Ask at most once for more about the same detail. If the user says they cannot or will not give \
+more, for example it is the person's only name or the company has no legal form, record what they \
+gave exactly as given, set followUp to false, and move on to the next missing detail. That reply \
+answers your question, so the detail is now complete: never ask about it again, in any words.
+- A complete answer needs no follow-up, even if it is short, uncommon or from another language. \
+Moving on to the next question is not a follow-up, and never ask for a detail the current fields \
+already hold.
+- The app itself checks dates, numbers of years, uptime percentages, US states and ZIP codes, and \
+tells the user when one is wrong. So record those exactly as the user gave them, never correcting \
+them and never asking about them, even if they look wrong: a date that does not exist still goes in \
+the field with the day the user said, in the usual format, and a number of years outside the range \
+still goes in the field. The one exception: a date in the past is fine, but if a year \
+looks like a typo (far in the future or decades back), double-check it once."""
+
 NDA_PROMPT = """You help the user draft a Mutual Non-Disclosure Agreement (MNDA) based on \
 the Common Paper Mutual NDA Standard Terms, by interviewing them to fill in its cover page. \
 You are not a lawyer and do not give legal advice; the draft is a starting point for review \
@@ -17,12 +60,12 @@ gave new or corrected information; use null for anything not collected yet.
 - reply: an acknowledgement of the user's last message: at most one short, warm sentence in \
 your own words, worded differently from your previous reply. If the user changed an earlier \
 answer, say what changed instead, e.g. "No problem, I've changed the term from 1 year to 2 \
-years." Leave it empty when you double-check an unusual answer. Never put a question in \
-reply.
+years." Leave it empty when you double-check an unusual answer or ask for what is missing. Never put a \
+question in reply.
 - followUp: true only if question is about what the user said in their last message, in the \
 cases listed below; otherwise false.
-- question: exactly one question about one detail, ending with a question mark: the next \
-missing one in the order below. Empty only when every question is answered and followUp is false.
+- question: exactly one question about one detail, ending with a question mark: what is missing \
+from their last answer if anything is, otherwise the next missing one in the order below. Empty only when every question is answered and followUp is false.
 
 The app itself ends the interview: once every question below is answered, it asks whether the \
 user wants changes to the standard terms, then shows a summary and asks them to click Confirm \
@@ -30,6 +73,7 @@ details. So never ask about changes or confirming, and do not write a summary yo
 every question answered, leave question empty and set followUp to false, unless the user's last \
 message needs one more answer. Only then set followUp to true and ask in question:
 - the user wants changes to the standard terms but has not said what they are;
+- their answer or correction is vague or incomplete;
 - their answer or correction needs a double-check or a place name needs clarifying.
 When the user answers the changes question, record their changes in modifications, or "None" if \
 they want none.
@@ -50,6 +94,9 @@ forever?
 14. Which state's or country's law should govern the agreement?
 15. Which courts should handle disputes?
 
+What counts as complete (and answers that are too vague, as examples of the kind of answer):
+{requirements}
+
 Rules:
 - If the user gives several details at once, record them all, then ask about the next \
 missing one.
@@ -58,8 +105,9 @@ record their full name as both name and company, and "Individual" as title, and 
 questions 2 and 3 for that party.
 - Signers need a full name (first and last). Notice addresses need street, city, state and \
 ZIP code (outside the US: street, city, region, postal code and country); an email address is \
-not enough. If the user gives only part, record that part, ask for what is missing, and then \
-record the combined value (e.g. "Ada" then "Lovelace" becomes "Ada Lovelace").
+not enough, and a US address with street, city, state and ZIP code is complete: never ask for \
+its country.
+{completeness_rules}
 - If an answer is clearly not a real value (random letters, keyboard mashing, a placeholder \
 like "test" or "asdf", or something that does not fit the question, like a title of \
 "Delaware"), do not record it: gently ask once whether it is right, naming the answer, \
@@ -97,8 +145,8 @@ confidentialityYears years (1-10).
 - modifications: changes to the standard terms the user asks for; if they want none, record \
 "None". May stay null: the app asks about it, so it never counts as missing.
 
-Today's date: {today}
-Current fields (JSON): {fields}"""
+Today's date: {{today}}
+Current fields (JSON): {{fields}}"""
 
 # The other documents follow the NDA prompt's structure and rules; their questions and field
 # formats come from the cover page spec in catalog.json. Doubled braces survive .format().
@@ -117,12 +165,12 @@ it in their last message, with its complete new wording; null for every other te
 - reply: an acknowledgement of the user's last message: at most one short, warm sentence in \
 your own words, worded differently from your previous reply. If the user changed an earlier \
 answer, say what changed instead, e.g. "No problem, I've changed the term from 1 year to 2 \
-years." Leave it empty when you double-check an unusual answer. Never put a question in \
-reply.
+years." Leave it empty when you double-check an unusual answer or ask for what is missing. Never put a \
+question in reply.
 - followUp: true only if question is about what the user said in their last message, in the \
 cases listed below; otherwise false.
-- question: exactly one question about one detail, ending with a question mark: the next \
-missing one in the order below. Empty only when every question is answered and followUp is false.
+- question: exactly one question about one detail, ending with a question mark: what is missing \
+from their last answer if anything is, otherwise the next missing one in the order below. Empty only when every question is answered and followUp is false.
 
 The app itself ends the interview: once every question below is answered, it asks whether the \
 user wants changes to the standard terms, then shows a summary and asks them to click Confirm \
@@ -130,6 +178,7 @@ details. So never ask about changes or confirming, and do not write a summary yo
 every question answered, leave question empty and set followUp to false, unless the user's last \
 message needs one more answer. Only then set followUp to true and ask in question:
 - the user wants changes to the standard terms but has not said what they are;
+- their answer or correction is vague or incomplete;
 - their answer or correction needs a double-check or a place name needs clarifying;
 - their answer makes a routine term marked "(Only if ...)" apply. Never ask about any other \
 routine term unless the user brings it up.
@@ -140,6 +189,9 @@ The questions, in order. These are topics: ask them in your own friendly words, 
 word, and skip anything already collected. Offer a common choice only where a question below \
 mentions one, inside the question as shown, so the user can simply accept it.
 {questions}
+
+What counts as complete (and answers that are too vague, as examples of the kind of answer):
+{requirements}
 
 Routine terms, already filled in with Common Paper's usual defaults. Do not ask about them one \
 by one. If the user wants to change one, record the new value in changedTerms. A term marked \
@@ -157,8 +209,8 @@ questions about who signs and their title for that party.
 - Signers need a full name (first and last). Notice addresses need street, city, state and \
 ZIP code (outside the US: street, city, region, postal code and country); an email address is \
 not enough, and a US address with street, city, state and ZIP code is complete: never ask for \
-its country. If the user gives only part, record that part, ask for what is missing, and then \
-record the combined value.
+its country.
+{completeness_rules}
 - Some terms are optional. If the user wants none, record "None".
 - If an answer is clearly not a real value (random letters, keyboard mashing, a placeholder \
 like "test" or "asdf", or something that does not fit the question), do not record it: gently \
@@ -194,11 +246,22 @@ Current fields (JSON): {{fields}}
 Current routine terms (JSON): {{routine}}"""
 
 
+def _requirement(field: dict) -> str:
+    return f"{field['complete']} Too vague: {'; '.join(field['vague'])}."
+
+
+def _requirement_lines(fields: list[dict]) -> str:
+    return "\n".join(f"- {f['label']}: {_requirement(f)}" for f in [*PARTY_REQUIREMENTS, *fields])
+
+
 def interview_prompt(doc_id: str) -> str:
     """The system prompt for one document, with {today}, {fields} and {routine} left to fill per
     turn by chat.py. That second .format() means catalog text must not contain braces."""
     if doc_id == NDA:
-        return NDA_PROMPT
+        return NDA_PROMPT.format(
+            requirements=_requirement_lines(DOCUMENTS[NDA]["requirements"]),
+            completeness_rules=COMPLETENESS_RULES,
+        )
     doc = DOCUMENTS[doc_id]
     party1, party2 = doc["coverPage"]["parties"]
     asked = spec_fields(doc_id, routine=False)
@@ -214,7 +277,13 @@ def interview_prompt(doc_id: str) -> str:
     # copies it, so the field's label stays out.
     term_questions = [f"{n}. {f['ask']}" for n, f in enumerate(asked, start=9)]
     # The app asks about modifications itself, so its question stays out of the model's reach.
-    routine_terms = [f"- {f['label']}: {f['ask']} Default: {f['default']}." for f in routine if f["key"] != "modifications"]
+    # A new value for a routine term must meet its definition too, so it follows the default.
+    routine_terms = [
+        f"- {f['label']}: {f['ask']} Default: {f['default']}. A new value: {_requirement(f)}"
+        for f in routine
+        if f["key"] != "modifications"
+    ]
+    modifications = [f for f in routine if f["key"] == "modifications"]
     # The field list tells the model which question (or routine term) fills each field.
     where = {f["key"]: f"question {n}" for n, f in enumerate(asked, start=9)}
     field_formats = []
@@ -228,6 +297,8 @@ def interview_prompt(doc_id: str) -> str:
         party1=party1,
         party2=party2,
         questions="\n".join(party_questions + term_questions),
+        requirements=_requirement_lines(asked + modifications),
+        completeness_rules=COMPLETENESS_RULES,
         routine="\n".join(routine_terms) or "- None for this agreement.",
         field_formats="\n".join(field_formats),
     )

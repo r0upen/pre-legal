@@ -21,7 +21,7 @@ export type FieldSpec = {
   key: string;
   label: string;
   ask: string;
-  type?: "text" | "date";
+  type?: "text" | "date" | "law" | "percent";
   default?: string;
 };
 

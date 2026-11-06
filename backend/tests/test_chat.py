@@ -120,6 +120,21 @@ def test_chat_joins_acknowledgement_and_question(client, fake_llm, reply, questi
     assert client.post("/api/chat", json=chat_body()).json()["reply"] == expected
 
 
+@pytest.mark.parametrize("document", [d for d in DOCUMENTS if d != "mutual-nda"])
+def test_every_field_definition_reaches_the_prompt(document):
+    prompt = interview_prompt(document)
+    for field in DOCUMENTS[document]["coverPage"]["fields"]:
+        assert field["complete"] in prompt
+        assert all(example in prompt for example in field["vague"])
+
+
+def test_the_nda_definitions_reach_the_prompt():
+    prompt = interview_prompt("mutual-nda")
+    for field in DOCUMENTS["mutual-nda"]["requirements"]:
+        assert field["complete"] in prompt
+        assert all(example in prompt for example in field["vague"])
+
+
 @pytest.mark.parametrize("document", list(DOCUMENTS))
 def test_interview_prompts_cover_the_shared_rules(document):
     prompt = interview_prompt(document).format(today="", fields="", routine="")
@@ -130,6 +145,16 @@ def test_interview_prompts_cover_the_shared_rules(document):
         "could mean more than one place",
         "full official name",
         "never double-check that value again",
+        "What counts as complete",
+        "A first and last name",
+        "a first name only",
+        "a company name with no legal form",
+        "a street with no city, state or ZIP code",
+        "Ask at most once for more about the same detail",
+        "send the whole answer again",
+        "Never ask this of an individual",
+        "is vague or incomplete",
+        "never correcting",
     ]
     for rule in rules:
         assert rule in prompt
@@ -285,7 +310,7 @@ def test_interview_prompt_is_built_from_the_cover_page_spec(client, fake_llm):
     # Routine terms are listed with their defaults instead of being asked.
     assert "14. Which courts should handle disputes" in prompt
     assert "- generalCapAmount: the General Cap Amount (routine term)" in prompt
-    assert "- General Cap Amount: What is the general limit on each party's liability? Default: $10,000." in prompt
+    assert "- General Cap Amount: What is the general limit on each party's liability? Default: $10,000. A new value: A fixed amount" in prompt
     assert "General Cap Amount: What" not in prompt.split("Routine terms")[0]
     assert "- effectiveDate: the Effective Date (question 12), always YYYY-MM-DD" in prompt
     assert '"None"' in prompt and '"Not applicable"' in prompt

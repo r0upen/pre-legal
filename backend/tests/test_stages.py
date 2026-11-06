@@ -202,3 +202,122 @@ def test_chat_rejects_an_unknown_stage(signed_in_client, fake_llm, stage):
 @pytest.mark.parametrize("doc_id", [d for d in DOC_IDS if d != NDA])
 def test_every_other_document_has_the_changes_term_as_a_routine_term(doc_id):
     assert "modifications" in [f["key"] for f in spec_fields(doc_id, routine=True)]
+
+
+# PL-14: code checks are firm. The app says what is wrong instead of the model's reply, and the value is not used.
+BAD_ADDRESS = "1 Main St, Dover, DE 1990"
+EMPTY_NDA_TURN = dict.fromkeys(complete_fields(NDA)) | {"party1": dict.fromkeys(PARTY), "party2": dict.fromkeys(PARTY)}
+
+
+def nda_turn(**given) -> dict:
+    return {"fields": EMPTY_NDA_TURN | given, "reply": "Got it, thanks!", "question": "What is next?"}
+
+
+@pytest.mark.parametrize(
+    ("given", "says"),
+    [
+        ({"effectiveDate": "2027-02-30"}, "February 30, 2027 is not a real date."),
+        ({"effectiveDate": "2027-13-01"}, "not a real calendar date"),
+        ({"mndaTermYears": 11}, "whole number from 1 to 10"),
+        ({"governingLaw": "the State of Delwaare"}, "Did you mean Delaware?"),
+        ({"party1": dict.fromkeys(PARTY) | {"noticeAddress": BAD_ADDRESS}}, '"1990"'),
+    ],
+    ids=["impossible-date", "impossible-month", "years", "state", "zip"],
+)
+def test_a_rejected_value_is_explained_by_the_app_mid_interview(signed_in_client, fake_llm, given, says):
+    fake_llm.turn = nda_turn(**given)
+    current = {k: None for k in complete_fields(NDA)} | {"party1": dict.fromkeys(PARTY), "party2": dict.fromkeys(PARTY)}
+    res = turn(signed_in_client, NDA, "collecting", current).json()
+    assert says in res["reply"]
+    assert "Got it" not in res["reply"] and "What is next?" not in res["reply"]
+    assert res["fields"] == current
+    assert res["stage"] == "collecting"
+
+
+def test_a_rejected_correction_after_confirming_keeps_the_old_value_and_says_so(signed_in_client, fake_llm):
+    fake_llm.turn = nda_turn(effectiveDate="2027-02-30")
+    current = complete_fields(NDA)
+    res = turn(signed_in_client, NDA, "confirmed", current, "Make it February 30").json()
+    assert "February 30, 2027 is not a real date." in res["reply"]
+    assert res["fields"]["effectiveDate"] == current["effectiveDate"]
+    assert res["stage"] == "confirmed"
+
+
+def test_a_good_change_beside_a_rejected_one_is_kept_and_needs_review(signed_in_client, fake_llm):
+    fake_llm.turn = nda_turn(effectiveDate="2027-02-30", purpose="A new deal")
+    res = turn(signed_in_client, NDA, "confirmed").json()
+    assert res["fields"]["purpose"] == "A new deal"
+    assert "not a real date" in res["reply"]
+    assert res["stage"] == "review"
+
+
+@pytest.mark.parametrize("stage", ["collecting", "changes"])
+def test_a_rejected_value_stops_the_interview_moving_on(signed_in_client, fake_llm, stage):
+    fake_llm.turn = nda_turn(effectiveDate="2027-02-30")
+    assert turn(signed_in_client, NDA, stage).json()["stage"] == stage
+
+
+def test_the_same_problem_is_said_once(signed_in_client, fake_llm):
+    party = dict.fromkeys(PARTY) | {"noticeAddress": BAD_ADDRESS}
+    fake_llm.turn = nda_turn(party1=party, party2=party)
+    assert turn(signed_in_client, NDA, "collecting").json()["reply"].count('"1990"') == 1
+
+
+def test_uptime_is_checked_only_on_the_service_level_agreement(signed_in_client, fake_llm):
+    doc = "service-level-agreement"
+    fake_llm.turn = {"fields": {k: None for k in complete_fields(doc)} | {"targetUptime": "101%", "party1": dict.fromkeys(PARTY), "party2": dict.fromkeys(PARTY)}}
+    res = turn(signed_in_client, doc, "collecting").json()
+    assert "at most 100%" in res["reply"]
+    assert res["fields"]["targetUptime"] == "Agreed"
+
+
+def test_a_date_on_another_document_is_rejected_the_same_way(signed_in_client, fake_llm):
+    doc = "business-associate-agreement"
+    fake_llm.turn = {"fields": {k: None for k in complete_fields(doc)} | {"baaEffectiveDate": "2027-02-30", "party1": dict.fromkeys(PARTY), "party2": dict.fromkeys(PARTY)}}
+    res = turn(signed_in_client, doc, "collecting").json()
+    assert "February 30, 2027 is not a real date." in res["reply"]
+    assert res["fields"]["baaEffectiveDate"] == "2027-03-05"
+
+
+def test_a_date_the_model_could_not_format_is_not_called_unreal(signed_in_client, fake_llm):
+    fake_llm.turn = nda_turn(effectiveDate="March 5, 2027")
+    reply = turn(signed_in_client, NDA, "collecting").json()["reply"]
+    assert "the full date" in reply and "not a real" not in reply
+
+
+# PL-14: the model sometimes copies an earlier message into its acknowledgement, question included.
+ASKED_BEFORE = "Thanks for the address line. And could you provide the city, state and ZIP code?"
+
+
+def turn_after(client, assistant_said):
+    history = [{"role": "assistant", "content": assistant_said}, {"role": "user", "content": "200 Market Street, San Francisco, CA 94105"}]
+    body = {"document": NDA, "messages": history, "fields": complete_fields(NDA) | {"purpose": None}, "today": "2026-10-22", "stage": "collecting"}
+    return client.post("/api/chat", json=body).json()
+
+
+def test_an_acknowledgement_copied_from_an_earlier_message_is_dropped(signed_in_client, fake_llm):
+    fake_llm.turn = {"reply": ASKED_BEFORE, "question": "What is the purpose?"}
+    assert turn_after(signed_in_client, ASKED_BEFORE)["reply"] == "What is the purpose?"
+
+
+def test_part_of_an_earlier_message_counts_as_a_copy(signed_in_client, fake_llm):
+    fake_llm.turn = {"reply": "Thanks for the address line.", "question": "What is the purpose?"}
+    assert turn_after(signed_in_client, ASKED_BEFORE)["reply"] == "What is the purpose?"
+
+
+def test_an_acknowledgement_with_a_question_is_dropped(signed_in_client, fake_llm):
+    fake_llm.turn = {"reply": "Got it, is that everything?", "question": "What is the purpose?"}
+    assert turn_after(signed_in_client, "Where is the notice address?")["reply"] == "What is the purpose?"
+
+
+def test_a_new_acknowledgement_is_kept(signed_in_client, fake_llm):
+    fake_llm.turn = {"reply": "Got the address, thank you!", "question": "What is the purpose?"}
+    assert turn_after(signed_in_client, ASKED_BEFORE)["reply"] == "Got the address, thank you! What is the purpose?"
+
+
+def test_a_dropped_acknowledgement_does_not_lose_the_final_question(signed_in_client, fake_llm):
+    fake_llm.turn = {"reply": ASKED_BEFORE}
+    history = [{"role": "assistant", "content": ASKED_BEFORE}, {"role": "user", "content": "No"}]
+    body = {"document": NDA, "messages": history, "fields": complete_fields(NDA), "today": "2026-10-22", "stage": "collecting"}
+    res = signed_in_client.post("/api/chat", json=body).json()
+    assert (res["reply"], res["stage"]) == (CHANGES_QUESTION, "changes")

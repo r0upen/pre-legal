@@ -7,11 +7,13 @@ from typing import Literal
 
 from pydantic import BaseModel, create_model
 
-from app.fields import IsoDate, NdaFields, Party, Text
+from app.fields import IsoDate, Law, NdaFields, Party, Percent, Text
 
 # The Docker image mirrors the repo layout, so this path works in both places.
 TEMPLATES_DIR = Path(__file__).resolve().parents[2] / "templates"
 NDA = "mutual-nda"
+# A field's "type" in the catalog picks its checks (fields.py); without one it is plain text.
+FIELD_TYPES = {"date": IsoDate, "law": Law, "percent": Percent}
 
 CATALOG: list[dict] = json.loads((TEMPLATES_DIR / "catalog.json").read_text())
 DOCUMENTS: dict[str, dict] = {entry["id"]: entry for entry in CATALOG}
@@ -30,7 +32,7 @@ def spec_fields(doc_id: str, routine: bool) -> list[dict]:
 
 def _model(name: str, fields: list[dict], **extra) -> type[BaseModel]:
     # Every field is required but nullable (null = not given), as strict structured outputs expect.
-    return create_model(name, **{f["key"]: (IsoDate if f.get("type") == "date" else Text) for f in fields}, **extra)
+    return create_model(name, **{f["key"]: (FIELD_TYPES.get(f.get("type"), Text)) for f in fields}, **extra)
 
 
 @cache

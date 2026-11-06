@@ -12,7 +12,7 @@ from pydantic import BaseModel, StringConstraints, create_model
 
 from app.documents import DocumentId, asked_model, fields_model, is_complete, routine_model
 from app.prompts import choose_prompt, interview_prompt
-from app.stages import Stage, fixed_question, next_stage
+from app.stages import Stage, fixed_question, next_stage, rejection_text
 
 # Loads OPENROUTER_API_KEY from the project-root .env in development. In Docker the
 # file is absent and the key comes from `docker run --env-file`.
@@ -54,7 +54,7 @@ def model_turn(doc_id: str) -> type[BaseModel]:
     return create_model("ModelTurn", fields=asked_model(doc_id), **changed, reply=str, followUp=bool, question=str)
 
 
-def _ask(system: str, messages: list[ChatMessage], response_format: type[BaseModel]) -> BaseModel:
+def _ask(system: str, messages: list[ChatMessage], response_format: type[BaseModel], context: dict | None = None) -> BaseModel:
     response = completion(
         model=MODEL,
         messages=[{"role": "system", "content": system}, *(m.model_dump() for m in messages)],
@@ -63,7 +63,7 @@ def _ask(system: str, messages: list[ChatMessage], response_format: type[BaseMod
         max_tokens=MAX_TOKENS,
         timeout=30,
     )
-    return response_format.model_validate_json(response.choices[0].message.content)
+    return response_format.model_validate_json(response.choices[0].message.content, context=context)
 
 
 def _merge(old: dict, new: dict) -> dict:
@@ -75,6 +75,15 @@ def merge(old: BaseModel, new: BaseModel) -> BaseModel:
     return type(old).model_validate(_merge(old.model_dump(), new.model_dump()))
 
 
+def _acknowledgement(reply: str, messages: list[ChatMessage]) -> str:
+    """The model's acknowledgement, unless it broke the rules for one. It sometimes copies an earlier
+    message, question included, which asks again for what the user just gave or thanks them for the
+    wrong thing. No wording of the prompt stopped that, and the turn is fine without one."""
+    reply = reply.strip()
+    copied = any(reply in m.content for m in messages if m.role == "assistant")
+    return "" if "?" in reply or copied else reply
+
+
 def chat_turn(doc_id: str, messages: list[ChatMessage], fields: BaseModel, today: date, stage: Stage) -> ChatTurn:
     """Sends the interview to the model and returns its reply with the merged fields and the new stage."""
     asked = asked_model(doc_id).model_validate(fields.model_dump())
@@ -84,18 +93,23 @@ def chat_turn(doc_id: str, messages: list[ChatMessage], fields: BaseModel, today
         fields=asked.model_dump_json(),
         routine=routine.model_validate(fields.model_dump()).model_dump_json() if routine else "{}",
     )
-    turn = _ask(system, messages, model_turn(doc_id))
+    rejected: list[str] = []  # filled by the checks in fields.py as the model's output is parsed
+    turn = _ask(system, messages, model_turn(doc_id), {"rejected": rejected})
     given = turn.fields.model_dump() | (turn.changedTerms.model_dump() if routine else {})
     # Fields the model was not asked for count as not given, so the merge keeps them.
     given = fields_model(doc_id).model_validate(dict.fromkeys(type(fields).model_fields) | given)
     merged = merge(fields, given)
     complete = is_complete(doc_id, merged)
-    new_stage = next_stage(stage, complete, merged != fields, turn.followUp)
-    # Unless the model needs an answer, its question is ignored once every detail is collected.
-    question = fixed_question(doc_id, new_stage) if complete and not turn.followUp else turn.question.strip()
-    if not question:
-        raise ValueError("the model asked no question")
-    text = " ".join(part for part in (turn.reply.strip(), question) if part)
+    # A rejected value still needs an answer, so the stage waits like it does for a follow-up.
+    new_stage = next_stage(stage, complete, merged != fields, turn.followUp or bool(rejected))
+    if rejected:
+        text = rejection_text(rejected)
+    else:
+        # Unless the model needs an answer, its question is ignored once every detail is collected.
+        question = fixed_question(doc_id, new_stage) if complete and not turn.followUp else turn.question.strip()
+        if not question:
+            raise ValueError("the model asked no question")
+        text = " ".join(part for part in (_acknowledgement(turn.reply, messages), question) if part)
     # The reply goes back in the history, so it must pass the same checks as any message.
     reply = ChatMessage(role="assistant", content=text).content
     return ChatTurn(reply=reply, fields=merged.model_dump(), stage=new_stage)
