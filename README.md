@@ -16,7 +16,7 @@ It covers 11 agreements, based on [Common Paper](https://commonpaper.com)'s stan
 
 *A street on its own gets a follow-up question, and the draft fills in beside the chat.*
 
-![The Check the details summary with a Confirm details button](docs/screenshots/summary.png)
+![The Check the details summary above the agreement, with the finished chat beside it](docs/screenshots/summary.png)
 
 *Before downloading, you confirm a summary that code builds from the collected details.*
 
