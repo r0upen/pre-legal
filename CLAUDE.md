@@ -138,6 +138,12 @@ are set up. Update this section after every ticket.
   an earlier assistant message: the model copied one in about 3 of 8 replays, and
   prompt wording did not stop it. The model sometimes also asks to confirm an
   unambiguous state ("California"); not fixed, because the place rule is PL-12's.
+- PL-15: `Workspace.tsx` no longer limits the width. The preview is a page of at most
+  48rem, centred (`.preview-page` in `globals.css`, whose `PAGE_WIDTH` twin is in
+  `lib/zoom.ts`), scaled with CSS `zoom`. That rule is under `@media screen`, so the PDF
+  never sees it. `DocumentBuilder` holds `chosenZoom` (null means fitting) and a
+  `ResizeObserver` tracks the panel; + or - sets a zoom until Fit to width clears it,
+  and each document opens fitting. `vitest.setup.ts` stubs `ResizeObserver`.
 
 ## Development process
 - Read the ticket with the Atlassian tools before starting.

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Draft } from "@/lib/api";
@@ -372,6 +372,116 @@ describe("the interview", () => {
       { role: "assistant", content: nda.greeting },
       { role: "user", content: "Acme Inc." },
     ]);
+  });
+});
+
+describe("preview zoom", () => {
+  // jsdom has no layout: this sets the panel's width and tells the page it changed.
+  function fakePanel(width: number) {
+    let notify = () => {};
+    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockImplementation(() => width);
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(callback: () => void) {
+          notify = callback;
+        }
+        observe() {
+          notify();
+        }
+        disconnect() {}
+      },
+    );
+    return (newWidth: number) => {
+      width = newWidth;
+      act(notify);
+    };
+  }
+  const shown = (percent: string) => expect(screen.getByRole("group", { name: "Preview zoom" })).toHaveTextContent(percent);
+  const fit = () => screen.getByRole("button", { name: "Fit to width" });
+  const article = () => screen.getByRole("heading", { level: 1, name: "Standard Terms" }).closest("article")!;
+
+  it("shows no controls until an agreement is open", () => {
+    mockBackend();
+    setup();
+    expect(screen.queryByRole("group", { name: "Preview zoom" })).not.toBeInTheDocument();
+  });
+
+  it("opens fitting the panel and keeps fitting as it resizes", async () => {
+    const resize = fakePanel(1152);
+    mockBackend();
+    const { start } = setup();
+    await start("Mutual Non-Disclosure Agreement");
+    shown("150%");
+    expect(fit()).toHaveAttribute("aria-pressed", "true");
+    expect(article().style.getPropertyValue("--preview-zoom")).toBe("1.5");
+
+    resize(960);
+    shown("125%");
+    expect(article().style.getPropertyValue("--preview-zoom")).toBe("1.25");
+  });
+
+  it.each([
+    ["Zoom in", "130%", 1.3],
+    ["Zoom out", "120%", 1.2],
+  ])("stops fitting after %s, until Fit to width is pressed", async (name, percent, scale) => {
+    const resize = fakePanel(960);
+    mockBackend();
+    const { user, start } = setup();
+    await start("Mutual Non-Disclosure Agreement");
+    shown("125%");
+
+    await user.click(screen.getByRole("button", { name }));
+    shown(percent);
+    expect(fit()).toHaveAttribute("aria-pressed", "false");
+    expect(article().style.getPropertyValue("--preview-zoom")).toBe(String(scale));
+    resize(1152);
+    shown(percent);
+
+    await user.click(fit());
+    shown("150%");
+    expect(fit()).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("does not reset while chatting", async () => {
+    fakePanel(960);
+    mockBackend({ reply: "Who signs for Acme Inc.?", fields: emptyValues });
+    const { user, send, start } = setup();
+    await start("Mutual Non-Disclosure Agreement");
+    await user.click(screen.getByRole("button", { name: "Zoom in" }));
+    shown("130%");
+
+    await send("Acme Inc.");
+    await screen.findByText("Who signs for Acme Inc.?");
+    shown("130%");
+  });
+
+  it("keeps fitting if + is pressed when the fit is already at the limit", async () => {
+    fakePanel(3000);
+    mockBackend();
+    const { user, start } = setup();
+    await start("Mutual Non-Disclosure Agreement");
+    shown("200%");
+    await user.click(screen.getByRole("button", { name: "Zoom in" }));
+    expect(fit()).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("stops at the limits", async () => {
+    fakePanel(768);
+    mockBackend();
+    const { user, start } = setup();
+    await start("Mutual Non-Disclosure Agreement");
+    const zoomOutButton = screen.getByRole("button", { name: "Zoom out" });
+    const zoomInButton = screen.getByRole("button", { name: "Zoom in" });
+    for (let i = 0; i < 7; i++) await user.click(zoomOutButton);
+    shown("50%");
+    expect(zoomOutButton).toHaveAttribute("aria-disabled", "true");
+    expect(zoomOutButton).toHaveFocus();
+    for (let i = 0; i < 17; i++) await user.click(zoomInButton);
+    shown("200%");
+    expect(zoomInButton).toHaveAttribute("aria-disabled", "true");
+    expect(zoomInButton).toHaveFocus();
+    expect(zoomOutButton).toHaveAttribute("aria-disabled", "false");
   });
 });
 
