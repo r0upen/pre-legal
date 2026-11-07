@@ -8,7 +8,8 @@ back to it later.
 
 - **The browser app** shows a sidebar of the user's documents, the chat, and
   a live preview of the agreement. On a wide screen the page fits the window
-  and each part scrolls on its own, so all stay visible throughout. On
+  and each part scrolls on its own, so all stay visible throughout, and the
+  chat and preview share all the width beside the sidebar. On
   smaller screens the sidebar slides in from a menu button, and on a narrow
   screen the chat comes first and the agreement below it.
 - **The server** runs in the same Docker container. It handles accounts,
@@ -278,7 +279,23 @@ The button waits while a reply is on its way, since that reply could change
 the details. If anything changes after confirming, the box comes back and must
 be confirmed again.
 
-## 7. Downloading the PDF
+## 7. Zooming the preview
+
+The agreement is shown as a page of a fixed width, centred in its panel, so its
+lines never get too long to read comfortably. Zoom controls sit above it: zoom
+out (−), the current zoom, zoom in (+) and **Fit to width**, from 50% to 200%.
+
+Each agreement opens in Fit to width, where the page fills its panel, and it
+keeps fitting as the window changes size. Pressing + or − picks a set zoom
+instead, which stays while the user chats, until they press Fit to width. On a
+panel narrower than a page, fitting stays at 100%, because the page already
+fills it. Zoomed in further, the text wraps within the panel, so there is no
+sideways scrolling. Opening another agreement goes back to Fit to width.
+
+Zoom only changes what is on screen. The PDF has its own layout and is the same
+at any zoom.
+
+## 8. Downloading the PDF
 
 **Download PDF** is enabled only once the user has confirmed the summary. Clicking it opens the browser's print
 dialog, where the user chooses "Save as PDF"; the suggested file name is the
@@ -287,7 +304,7 @@ page that the draft is a starting point for review by a lawyer, not legal
 advice, followed by the cover page and the standard terms. The sidebar, the
 chat and the on-screen notice are left out.
 
-## 8. Saving and reopening
+## 9. Saving and reopening
 
 Drafts save themselves; there is no Save button. A draft is created when an
 agreement starts, and saved again after every reply and every Confirm details

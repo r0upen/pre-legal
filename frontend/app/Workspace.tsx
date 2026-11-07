@@ -141,7 +141,7 @@ export default function Workspace({ user, onLoggedOut }: { user: User; onLoggedO
           </button>
           <p className="text-lg font-semibold tracking-tight text-navy">Pre-Legal</p>
         </header>
-        <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col p-4 lg:min-h-0 lg:p-6 print:block print:p-0">
+        <div className="flex w-full flex-1 flex-col p-4 lg:min-h-0 lg:p-6 print:block print:p-0">
           {loadFailed && (
             <p role="alert" className="text-sm text-red-700">
               Could not load your documents. Check that the backend is running, then reload the page.

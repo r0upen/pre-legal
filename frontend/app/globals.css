@@ -63,6 +63,16 @@ body {
   text-decoration: underline;
 }
 
+/* Screen only, so the PDF keeps its own layout. A page width stops lines getting too long on a wide
+   panel; a narrower panel is simply filled. zoom scales the page's width with its text. */
+@media screen {
+  .preview-page {
+    zoom: var(--preview-zoom);
+    max-width: 48rem;
+    margin-inline: auto;
+  }
+}
+
 @media print {
   body {
     background: white;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { flushSync } from "react-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -17,9 +17,11 @@ import {
   type Stage,
 } from "@/lib/api";
 import { documentKind, type DocValues, type DocumentSpec } from "@/lib/documents";
+import { fitZoom, zoomIn, zoomOut } from "@/lib/zoom";
 import Chat from "./Chat";
 import DocumentChoices from "./DocumentChoices";
 import Summary from "./Summary";
+import ZoomControls from "./ZoomControls";
 
 export const OPENING =
   "Hi there! I can help you draft a legal agreement from Common Paper's standard templates. What do you need? Pick one below, or describe it in your own words.";
@@ -51,6 +53,10 @@ export default function DocumentBuilder({ documents, saved, onCreated, onSaved }
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [saveFailed, setSaveFailed] = useState(false);
+  // The preview keeps fitting its panel until the user picks a zoom with + or -. Kept here, so it
+  // lasts while chatting; a new key from Workspace opens each document fitting again.
+  const [chosenZoom, setChosenZoom] = useState<number | null>(null);
+  const [panelWidth, setPanelWidth] = useState(0);
 
   // Bumped when the user moves to another document, so a reply that arrives after that is dropped:
   // saving it could overwrite a newer copy of the draft if they have since come back to it.
@@ -70,6 +76,17 @@ export default function DocumentBuilder({ documents, saved, onCreated, onSaved }
   const downloadRef = useRef<HTMLButtonElement>(null);
   const documentRef = useRef<HTMLDivElement>(null);
   const docId = doc?.id;
+  const zoom = chosenZoom ?? fitZoom(panelWidth);
+  const showDocument = kind && values && typeof standardTerms === "string";
+
+  // Before paint, so the page does not open at one size and then jump to another.
+  useLayoutEffect(() => {
+    const panel = documentRef.current;
+    if (!panel) return;
+    const observer = new ResizeObserver(() => setPanelWidth(panel.clientWidth));
+    observer.observe(panel);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(
     () => () => {
@@ -202,6 +219,15 @@ export default function DocumentBuilder({ documents, saved, onCreated, onSaved }
       <section aria-label="Document preview" className="flex flex-col gap-4 lg:min-h-0">
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 print:hidden">
           <h2 className="text-lg font-semibold text-navy">Preview</h2>
+          {showDocument && (
+            <ZoomControls
+              zoom={zoom}
+              fitting={chosenZoom === null}
+              onZoomOut={() => setChosenZoom(zoomOut(zoom))}
+              onZoomIn={() => setChosenZoom(zoomIn(zoom))}
+              onFit={() => setChosenZoom(null)}
+            />
+          )}
           <div className="flex items-center gap-3">
             {!ready && <p className="text-xs text-slate-500">{hint}</p>}
             <button
@@ -216,12 +242,19 @@ export default function DocumentBuilder({ documents, saved, onCreated, onSaved }
           </div>
         </div>
         <div ref={documentRef} className="space-y-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto print:overflow-visible">
-          {showSummary && <Summary rows={kind.summarize(values)} onConfirm={confirmDetails} disabled={pending} />}
+          {showSummary && (
+            <div className="mx-auto max-w-3xl">
+              <Summary rows={kind.summarize(values)} onConfirm={confirmDetails} disabled={pending} />
+            </div>
+          )}
           <p className="hidden text-xs italic text-slate-600 print:block">
             Draft prepared with Pre-Legal. This draft is a starting point for review by a lawyer. It is not legal advice.
           </p>
-          {kind && values && typeof standardTerms === "string" ? (
-            <article className="nda-doc rounded-lg border border-slate-200 bg-white p-10 shadow-sm print:border-0 print:p-0 print:shadow-none">
+          {showDocument ? (
+            <article
+              style={{ "--preview-zoom": zoom / 100 } as CSSProperties}
+              className="nda-doc preview-page rounded-lg border border-slate-200 bg-white p-10 shadow-sm print:border-0 print:p-0 print:shadow-none"
+            >
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{kind.build(values, standardTerms)}</ReactMarkdown>
             </article>
           ) : (
